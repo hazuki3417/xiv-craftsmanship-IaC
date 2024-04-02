@@ -54,12 +54,12 @@ const getEnvironment = () => {
   return process.env.ENVIRONMENT as environmentType;
 }
 
-const envName = () => {
+const env = () => {
   const name = getEnvironment();
   return environment(name);
 }
 
-export default envName;
+export default env;
 export {
   environmentType as envNameType,
   verifyEnvironment as verifyEnvName,

@@ -1,11 +1,13 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import { IAMResources } from './memoria-record/iam';
+import { IAMResources, ECRResources } from './memoria-record';
 
 export class MemoriaRecordStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const IamResource = new IAMResources(this, 'memoria-record');
+    // TODO: 第二引数の用途を調べる
+    const IamResource = new IAMResources(this, 'memoria-record-iam');
+    const EcrResource = new ECRResources(this, 'memoria-record-ecr');
   }
 }
