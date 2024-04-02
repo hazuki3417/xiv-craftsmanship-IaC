@@ -13,8 +13,8 @@ export class ECRResources extends Construct {
     new cdk.aws_ecr.Repository(this, 'MemoriaRecordECR', {
       repositoryName: 'memoria-record',
       removalPolicy: cdk.RemovalPolicy.DESTROY,
-      imageScanOnPush: true,
-      imageTagMutability: cdk.aws_ecr.TagMutability.MUTABLE,
+      imageScanOnPush: false,
+      imageTagMutability: cdk.aws_ecr.TagMutability.IMMUTABLE,
     });
 
     // TODO: ライフサイクルポリシーを設定する
