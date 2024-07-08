@@ -4,10 +4,13 @@ import env, { getEnvName } from '../environment';
 
 export class IAMResources extends Construct {
   constructor(scope: Construct, id: string) {
+    /**
+     * 環境ごとにIAMリソースを作成する。
+     * このIAMはコンテナにアタッチする用途で利用する。
+     */
     super(scope, id);
 
     if(env().allow(['production', 'staging'])){
-      // production,stagingのときはコンテナにアタッチするためのIAMロールを作成する
       // TODO: 第二引数の用途を調べる
       const role = new cdk.aws_iam.Role(this, 'MemoriaRecordIAM', {
         assumedBy: new cdk.aws_iam.ServicePrincipal('lambda.amazonaws.com'),

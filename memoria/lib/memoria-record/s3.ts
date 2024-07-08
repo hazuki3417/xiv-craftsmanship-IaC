@@ -4,6 +4,9 @@ import { getEnvName } from '../environment';
 
 export class S3Resources extends Construct {
   constructor(scope: Construct, id: string) {
+    /**
+     * 環境ごとにS3バケットを作成する。
+     */
     super(scope, id);
 
     new cdk.aws_s3.Bucket(this, 'MemoriaRecordS3', {
