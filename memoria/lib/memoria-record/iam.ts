@@ -6,7 +6,7 @@ export class IAMResources extends Construct {
   constructor(scope: Construct, id: string) {
     /**
      * 環境ごとにIAMリソースを作成する。
-     * このIAMはコンテナにアタッチする用途で利用する。
+     * このIAMはコンテナにアタッチ（アプリケーション用IAM）する用途で利用する。
      */
     super(scope, id);
 
