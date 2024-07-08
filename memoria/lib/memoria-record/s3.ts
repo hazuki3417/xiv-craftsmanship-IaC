@@ -2,7 +2,7 @@ import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { getEnvName } from '../environment';
 
-export class S3Resources extends Construct {
+export class S3 extends Construct {
   constructor(scope: Construct, id: string) {
     /**
      * 環境ごとにS3バケットを作成する。

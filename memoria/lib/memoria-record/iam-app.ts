@@ -2,11 +2,10 @@ import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import env, { getEnvName } from '../environment';
 
-export class IAMResources extends Construct {
+export class IAMApp extends Construct {
   constructor(scope: Construct, id: string) {
     /**
-     * 環境ごとにIAMリソースを作成する。
-     * このIAMはコンテナにアタッチ（アプリケーション用IAM）する用途で利用する。
+     * 環境ごとにIAMリソースを作成する。（アプリケーション用）
      */
     super(scope, id);
 

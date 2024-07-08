@@ -7,13 +7,25 @@ import { verifyEnvName, getEnvName } from '../lib/environment';
 
 verifyEnvName();
 
+type RootTagType = {
+  Environment: string;
+  ServiceName: string;
+};
+
+type MicroServiceTagType = RootTagType & {
+  MicroServiceName: string;
+};
+
 const app = new cdk.App();
+
+const rootTag: RootTagType = {
+  Environment: getEnvName(),
+  ServiceName: 'memoria'
+};
 
 // new MemoriaStack(app, 'MemoriaStack');
 new MemoriaRecordStack(app, 'MemoriaRecordStack', {
-  tags: {
-    Environment: getEnvName(),
-    ServiceName: 'memoria',
+  tags: { ...rootTag,
     MicroServiceName: 'memoria-record'
-  }
+  } as MicroServiceTagType
 });

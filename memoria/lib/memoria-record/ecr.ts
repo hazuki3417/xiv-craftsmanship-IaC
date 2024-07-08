@@ -1,7 +1,7 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
-export class ECRResources extends Construct {
+export class ECR extends Construct {
   constructor(scope: Construct, id: string) {
     /**
      * すべての環境利用可能なレジストリとして作成する。
