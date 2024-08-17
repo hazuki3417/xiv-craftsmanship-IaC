@@ -64,19 +64,12 @@ export class XivCraftsmanshipStack extends cdk.Stack {
     // ECRへのアクセスを許可するポリシーをIAMロールにアタッチ
     githubActionsEcrDeployRole.addToPolicy(new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
+      // TODO: アクセス制限・リソースの制限をちゃんと設定する
       actions: [
-        'ecr:GetDownloadUrlForLayer',
-        'ecr:BatchGetImage',
-        'ecr:CompleteLayerUpload',
-        'ecr:UploadLayerPart',
-        'ecr:InitiateLayerUpload',
-        'ecr:PutImage',
-        'ecr:GetAuthorizationToken'
+        "*"
       ],
       resources: [
-        ecrWeb.repositoryArn,
-        ecrApi.repositoryArn,
-        ecrDb.repositoryArn,
+        "*"
       ],
     }));
 
