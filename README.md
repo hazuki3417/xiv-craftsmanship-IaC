@@ -1,4 +1,4 @@
-# Welcome to the Memoria IaC project
+# Welcome to the xiv-craftsmanship IaC project
 
 A repository for IaC development using AWS CDK and TypeScript.
 
