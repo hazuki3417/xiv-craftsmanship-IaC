@@ -3,6 +3,8 @@ import { Construct } from 'constructs';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import { XivCraftsmanshipTagType } from './type';
+import { InstanceClass, InstanceSize, InstanceType, SubnetType, Vpc } from 'aws-cdk-lib/aws-ec2';
+import { Cluster, ContainerImage, Ec2Service, Ec2TaskDefinition } from 'aws-cdk-lib/aws-ecs';
 
 export class XivCraftsmanshipStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: cdk.StackProps) {
@@ -79,5 +81,69 @@ export class XivCraftsmanshipStack extends cdk.Stack {
       actions: ['ecr:DescribeRepositories'],
       resources: ['*'],
     }));
+
+    /**
+     * クラスターの作成
+     */
+    const vpc = new Vpc(this, `${tags.environment}-Vpc`, {
+      maxAzs: 2,
+    });
+
+    const cluster = new Cluster(this, `${tags.environment}-Cluster`, {
+      vpc: vpc,
+    })
+
+    cluster.addCapacity(`${tags.environment}-Capacity`, {
+      instanceType: new InstanceType(`${InstanceClass.T2}.${InstanceSize.MICRO}`),
+      vpcSubnets: { subnetType: SubnetType.PUBLIC},
+    })
+
+    /**
+     * Webのタスク定義作成
+     */
+    const xivCraftsmanshipWebTask = new Ec2TaskDefinition(this, `${tags.environment}-${tags.service}-web`)
+    xivCraftsmanshipWebTask.addContainer(`${tags.environment}-${tags.service}-web-container`, {
+      image: ContainerImage.fromEcrRepository(ecrWeb),
+      cpu: 256,
+      memoryLimitMiB: 512,
+      environment: {
+      }
+    })
+
+    /**
+     * APIのタスク定義作成
+     */
+    const xivCraftsmanshipApiTask = new Ec2TaskDefinition(this, `${tags.environment}-${tags.service}-api`)
+    xivCraftsmanshipApiTask.addContainer(`${tags.environment}-${tags.service}-api-container`, {
+      image: ContainerImage.fromEcrRepository(ecrApi),
+      cpu: 124,
+      memoryLimitMiB: 256,
+      environment: {
+      }
+    })
+
+
+    /**
+     * DBのタスク定義作成
+     */
+    const xivCraftsmanshipDbTask = new Ec2TaskDefinition(this, `${tags.environment}-${tags.service}-db`)
+    xivCraftsmanshipDbTask.addContainer(`${tags.environment}-${tags.service}-db-container`, {
+      image: ContainerImage.fromEcrRepository(ecrDb),
+      cpu: 124,
+      memoryLimitMiB: 124,
+      environment: {
+        'POSTGRES_USER': 'example',
+        'POSTGRES_PASSWORD': 'example',
+        'POSTGRES_DB': 'example',
+      }
+    })
+
+    // const xivCraftsmanshipDbService = new Ec2Service(this, `${tags.environment}-${tags.service}-db-service`, {
+    //   cluster: cluster,
+    //   taskDefinition: xivCraftsmanshipDbTask,
+    // })
+
+    // xivCraftsmanshipDbService.autoScaleTaskCount({ maxCapacity: 1 });
+
   }
 }
