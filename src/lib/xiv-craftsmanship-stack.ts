@@ -4,7 +4,8 @@ import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import { XivCraftsmanshipTagType } from './type';
 import { InstanceClass, InstanceSize, InstanceType, Port, SecurityGroup, SubnetType, Vpc } from 'aws-cdk-lib/aws-ec2';
-import { Cluster, ContainerImage, Ec2Service, Ec2TaskDefinition } from 'aws-cdk-lib/aws-ecs';
+import { Cluster, ContainerImage, Ec2Service, Ec2TaskDefinition, LogDriver, NetworkMode } from 'aws-cdk-lib/aws-ecs';
+import * as logs from 'aws-cdk-lib/aws-logs';
 
 export class XivCraftsmanshipStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: cdk.StackProps) {
@@ -114,6 +115,27 @@ export class XivCraftsmanshipStack extends cdk.Stack {
 
 
     /***************************************************************************
+     * cloud watch logs
+     **************************************************************************/
+    const logDb = new logs.LogGroup(this, `${tags.environment}-${tags.service}-db-log`, {
+      logGroupName: `/ecs/${tags.environment}-${tags.service}-db`,
+      retention: logs.RetentionDays.ONE_WEEK,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    })
+
+    const logApi = new logs.LogGroup(this, `${tags.environment}-${tags.service}-api-log`, {
+      logGroupName: `/ecs/${tags.environment}-${tags.service}-api`,
+      retention: logs.RetentionDays.ONE_WEEK,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    })
+
+    const logWeb = new logs.LogGroup(this, `${tags.environment}-${tags.service}-web-log`, {
+      logGroupName: `/ecs/${tags.environment}-${tags.service}-web`,
+      retention: logs.RetentionDays.ONE_WEEK,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    })
+
+    /***************************************************************************
      * ecs cluster
      **************************************************************************/
 
@@ -130,7 +152,9 @@ export class XivCraftsmanshipStack extends cdk.Stack {
      * db
      **************************************************************************/
 
-    const xivCraftsmanshipDbTask = new Ec2TaskDefinition(this, `${tags.environment}-${tags.service}-db`)
+    const xivCraftsmanshipDbTask = new Ec2TaskDefinition(this, `${tags.environment}-${tags.service}-db`, {
+      networkMode: NetworkMode.AWS_VPC
+    })
     xivCraftsmanshipDbTask.addContainer(`${tags.environment}-${tags.service}-db-container`, {
       image: ContainerImage.fromEcrRepository(ecrDb),
       cpu: 124,
@@ -144,14 +168,18 @@ export class XivCraftsmanshipStack extends cdk.Stack {
         // TODO: cloud mapなどを使って接続できるようにする
         containerPort: 5432,
         hostPort: 5432,
-      }]
+      }],
+      logging: LogDriver.awsLogs({
+        logGroup: logDb,
+        streamPrefix: `${tags.environment}-${tags.service}-db`,
+      })
     })
 
    const xivCraftsmanshipDbService = new Ec2Service(this, `${tags.environment}-${tags.service}-db-service`, {
       cluster: cluster,
       taskDefinition: xivCraftsmanshipDbTask,
       daemon: true,
-      // securityGroups: [sgDb],
+      securityGroups: [sgDb],
     })
 
 
@@ -160,20 +188,30 @@ export class XivCraftsmanshipStack extends cdk.Stack {
      * api
      **************************************************************************/
 
-    const xivCraftsmanshipApiTask = new Ec2TaskDefinition(this, `${tags.environment}-${tags.service}-api`)
+    const xivCraftsmanshipApiTask = new Ec2TaskDefinition(this, `${tags.environment}-${tags.service}-api`, {
+      networkMode: NetworkMode.AWS_VPC
+    })
     xivCraftsmanshipApiTask.addContainer(`${tags.environment}-${tags.service}-api-container`, {
       image: ContainerImage.fromEcrRepository(ecrApi),
       cpu: 124,
       memoryLimitMiB: 256,
       environment: {
-        DB_HOST: xivCraftsmanshipDbService.serviceName,
-        Environment: tags.environment,
-        Port: "8080",
-        PostgreSqlHost: `${xivCraftsmanshipDbService.serviceName}:5432`,
-        PostgreSqlUsername: "example",
-        PostgreSqlPassword: "example",
-        PostgreSqlDb: "example",
-      }
+        ENV: tags.environment,
+        PORT: "8080",
+        POSTGRE_SQL_HOST: `${xivCraftsmanshipDbService.serviceName}:5432`,
+        POSTGRE_SQL_USERNAME: "example",
+        POSTGRE_SQL_PASSWORD: "example",
+        POSTGRE_SQL_DB: "example",
+      },
+      portMappings: [{
+        // TODO: cloud mapなどを使って接続できるようにする
+        containerPort: 8080,
+        hostPort: 8080,
+      }],
+      logging: LogDriver.awsLogs({
+        logGroup: logApi,
+        streamPrefix: `${tags.environment}-${tags.service}-api`,
+      })
     })
 
     // const xivCraftsmanshipApiService = new Ec2Service(this, `${tags.environment}-${tags.service}-api-service`, {
@@ -187,22 +225,27 @@ export class XivCraftsmanshipStack extends cdk.Stack {
      * web
      **************************************************************************/
 
-    const xivCraftsmanshipWebTask = new Ec2TaskDefinition(this, `${tags.environment}-${tags.service}-web`)
-    xivCraftsmanshipWebTask.addContainer(`${tags.environment}-${tags.service}-web-container`, {
-      image: ContainerImage.fromEcrRepository(ecrWeb),
-      cpu: 256,
-      memoryLimitMiB: 512,
-      environment: {
-      }
-    })
+    // const xivCraftsmanshipWebTask = new Ec2TaskDefinition(this, `${tags.environment}-${tags.service}-web`, {
+    //   networkMode: NetworkMode.AWS_VPC
+    // })
+    // xivCraftsmanshipWebTask.addContainer(`${tags.environment}-${tags.service}-web-container`, {
+    //   image: ContainerImage.fromEcrRepository(ecrWeb),
+    //   cpu: 256,
+    //   memoryLimitMiB: 512,
+    //   environment: {
+    //   },
+    //   logging: LogDriver.awsLogs({
+    //     logGroup: logWeb,
+    //     streamPrefix: `${tags.environment}-${tags.service}-web`,
+    //   })
+    // })
 
 
-    const xivCraftsmanshipWebService = new Ec2Service(this, `${tags.environment}-${tags.service}-web-service`, {
-      cluster: cluster,
-      taskDefinition: xivCraftsmanshipWebTask,
-      daemon: true,
-      // securityGroups: [sgWeb],
-    })
-
+    // const xivCraftsmanshipWebService = new Ec2Service(this, `${tags.environment}-${tags.service}-web-service`, {
+    //   cluster: cluster,
+    //   taskDefinition: xivCraftsmanshipWebTask,
+    //   daemon: true,
+    //   // securityGroups: [sgWeb],
+    // })
   }
 }
