@@ -13,11 +13,25 @@ devbox shell
 ### Show infrastructure differences
 
 ```sh
-npm run cdk diff
+npm run cdk:{environment} diff
 ```
 
-### Perform infrastructure deployment
+### Perform infrastructure deployment all
 
 ```sh
-npm run cdk deploy
+npm run cdk:{environment} deploy
+```
+
+### Perform infrastructure deployment stack
+
+```sh
+npm run cdk:{environment} deploy {stack name}
+```
+
+## snippet
+
+### Service
+
+```sh
+npm run cdk:develop deploy XivCraftsmanshipStack
 ```
