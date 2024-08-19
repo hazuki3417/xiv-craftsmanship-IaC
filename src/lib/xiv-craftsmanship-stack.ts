@@ -1,11 +1,11 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
-import * as iam from 'aws-cdk-lib/aws-iam';
 import { XivCraftsmanshipTagType } from './type';
 import { InstanceClass, InstanceSize, InstanceType, Port, SecurityGroup, SubnetType, Vpc } from 'aws-cdk-lib/aws-ec2';
 import { Cluster, ContainerImage, Ec2Service, Ec2TaskDefinition, LogDriver, NetworkMode } from 'aws-cdk-lib/aws-ecs';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import * as servicediscovery from 'aws-cdk-lib/aws-servicediscovery';
 
 export class XivCraftsmanshipStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: cdk.StackProps) {
@@ -13,72 +13,23 @@ export class XivCraftsmanshipStack extends cdk.Stack {
 
     const tags = props.tags as XivCraftsmanshipTagType;
 
-    /**
-     * GitHub Actions 用のリソース
-     */
-    const oidcProvider = new iam.OpenIdConnectProvider(this, `${tags.environment}-GitHubActionsProvider`, {
-      url: 'https://token.actions.githubusercontent.com',
-      clientIds: ['sts.amazonaws.com'],
-    });
-
-    /**
-     * GitHub Actions コンテナデプロイ用ロール
-     */
-    const githubActionsEcrDeployRole = new iam.Role(this, `${tags.environment}-GitHubActionsEcrDeployRole`, {
-      assumedBy: new iam.FederatedPrincipal(
-        oidcProvider.openIdConnectProviderArn,
-        {
-          StringLike: {
-            'token.actions.githubusercontent.com:sub': [
-              'repo:hazuki3417/xiv-craftsmanship-web:*',
-              'repo:hazuki3417/xiv-craftsmanship-api:*',
-              'repo:hazuki3417/xiv-craftsmanship-db:*',
-            ]
-          }
-        },
-        'sts:AssumeRoleWithWebIdentity'
-      ),
-      description: 'Role that allows GitHub Actions to access AWS resources',
-    });
-
-    // ECRへのアクセスを許可するポリシーをIAMロールにアタッチ
-    githubActionsEcrDeployRole.addToPolicy(new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      // TODO: アクセス制限・リソースの制限をちゃんと設定する
-      actions: [
-        "*"
-      ],
-      resources: [
-        "*"
-      ],
-    }));
-
-    // ECRのリストを取得するためのアクセス許可も追加
-    githubActionsEcrDeployRole.addToPolicy(new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: ['ecr:DescribeRepositories'],
-      resources: ['*'],
-    }));
-
-
-
     /***************************************************************************
      * ecr
      **************************************************************************/
 
     const ecrDb = new ecr.Repository(this, `${tags.environment}-EcrRepositoryDb`, {
       repositoryName: `${tags.environment}-${tags.service}-db`,
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
     const ecrApi = new ecr.Repository(this, `${tags.environment}-EcrRepositoryApi`, {
       repositoryName: `${tags.environment}-${tags.service}-api`,
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
     const ecrWeb = new ecr.Repository(this, `${tags.environment}-EcrRepositoryWeb`, {
       repositoryName: `${tags.environment}-${tags.service}-web`,
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
     ecrDb.addLifecycleRule({ maxImageCount: 5 });
@@ -113,7 +64,6 @@ export class XivCraftsmanshipStack extends cdk.Stack {
     });
     sgDb.addIngressRule(sgApi, Port.tcp(5432), 'allow api to connect to db');
 
-
     /***************************************************************************
      * cloud watch logs
      **************************************************************************/
@@ -143,10 +93,24 @@ export class XivCraftsmanshipStack extends cdk.Stack {
       vpc: vpc,
     })
 
+
+    /**
+     * NOTE: t2.microはENIの数が2つ。aws vpcモードを利用するとすぐに枯渇するので、t3a.mediumを利用している。
+     *       ランニングコストが高かったらネットワークモードをbrideにして、1つのサービスで稼働させる方法を検討する。
+     */
+
     cluster.addCapacity(`${tags.environment}-Capacity`, {
-      instanceType: new InstanceType(`${InstanceClass.T2}.${InstanceSize.MICRO}`),
+      instanceType: new InstanceType(`${InstanceClass.T3A}.${InstanceSize.MEDIUM}`),
       vpcSubnets: { subnetType: SubnetType.PUBLIC},
     })
+
+    /**
+     * service discoveryを用いて名前によるサービス間通信を実現する
+     */
+    const namespace = cluster.addDefaultCloudMapNamespace({
+      name: `${tags.environment}.local`
+    })
+
 
     /***************************************************************************
      * db
@@ -167,7 +131,7 @@ export class XivCraftsmanshipStack extends cdk.Stack {
       portMappings: [{
         // TODO: cloud mapなどを使って接続できるようにする
         containerPort: 5432,
-        hostPort: 5432,
+        // hostPort: 5432,
       }],
       logging: LogDriver.awsLogs({
         logGroup: logDb,
@@ -175,12 +139,16 @@ export class XivCraftsmanshipStack extends cdk.Stack {
       })
     })
 
-   const xivCraftsmanshipDbService = new Ec2Service(this, `${tags.environment}-${tags.service}-db-service`, {
-      cluster: cluster,
-      taskDefinition: xivCraftsmanshipDbTask,
-      daemon: true,
-      securityGroups: [sgDb],
-    })
+  //  const xivCraftsmanshipDbService = new Ec2Service(this, `${tags.environment}-${tags.service}-db-service`, {
+  //     cluster: cluster,
+  //     taskDefinition: xivCraftsmanshipDbTask,
+  //     daemon: true,
+  //     securityGroups: [sgDb],
+  //     cloudMapOptions: {
+  //       name: `${tags.service}-db`,
+  //       cloudMapNamespace: namespace,
+  //     }
+  //   })
 
 
 
@@ -193,20 +161,20 @@ export class XivCraftsmanshipStack extends cdk.Stack {
     })
     xivCraftsmanshipApiTask.addContainer(`${tags.environment}-${tags.service}-api-container`, {
       image: ContainerImage.fromEcrRepository(ecrApi),
-      cpu: 124,
+      cpu: 256,
       memoryLimitMiB: 256,
       environment: {
         ENV: tags.environment,
         PORT: "8080",
-        POSTGRE_SQL_HOST: `${xivCraftsmanshipDbService.serviceName}:5432`,
+        // POSTGRE_SQL_HOST: `${xivCraftsmanshipDbService.cloudMapService!.serviceName}.${namespace.namespaceName}`,
         POSTGRE_SQL_USERNAME: "example",
         POSTGRE_SQL_PASSWORD: "example",
         POSTGRE_SQL_DB: "example",
       },
       portMappings: [{
-        // TODO: cloud mapなどを使って接続できるようにする
+      //   // TODO: cloud mapなどを使って接続できるようにする
         containerPort: 8080,
-        hostPort: 8080,
+      //   hostPort: 8080,
       }],
       logging: LogDriver.awsLogs({
         logGroup: logApi,
@@ -219,26 +187,30 @@ export class XivCraftsmanshipStack extends cdk.Stack {
     //   taskDefinition: xivCraftsmanshipApiTask,
     //   daemon: true,
     //   securityGroups: [sgApi],
+    //   cloudMapOptions: {
+    //     name: `${tags.service}-api`,
+    //     cloudMapNamespace: namespace,
+    //   }
     // })
 
     /***************************************************************************
      * web
      **************************************************************************/
 
-    // const xivCraftsmanshipWebTask = new Ec2TaskDefinition(this, `${tags.environment}-${tags.service}-web`, {
-    //   networkMode: NetworkMode.AWS_VPC
-    // })
-    // xivCraftsmanshipWebTask.addContainer(`${tags.environment}-${tags.service}-web-container`, {
-    //   image: ContainerImage.fromEcrRepository(ecrWeb),
-    //   cpu: 256,
-    //   memoryLimitMiB: 512,
-    //   environment: {
-    //   },
-    //   logging: LogDriver.awsLogs({
-    //     logGroup: logWeb,
-    //     streamPrefix: `${tags.environment}-${tags.service}-web`,
-    //   })
-    // })
+    const xivCraftsmanshipWebTask = new Ec2TaskDefinition(this, `${tags.environment}-${tags.service}-web`, {
+      networkMode: NetworkMode.AWS_VPC
+    })
+    xivCraftsmanshipWebTask.addContainer(`${tags.environment}-${tags.service}-web-container`, {
+      image: ContainerImage.fromEcrRepository(ecrWeb),
+      cpu: 256,
+      memoryLimitMiB: 512,
+      environment: {
+      },
+      logging: LogDriver.awsLogs({
+        logGroup: logWeb,
+        streamPrefix: `${tags.environment}-${tags.service}-web`,
+      })
+    })
 
 
     // const xivCraftsmanshipWebService = new Ec2Service(this, `${tags.environment}-${tags.service}-web-service`, {
