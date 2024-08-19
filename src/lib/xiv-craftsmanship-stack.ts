@@ -138,12 +138,28 @@ export class XivCraftsmanshipStack extends cdk.Stack {
       }
     })
 
-    // const xivCraftsmanshipDbService = new Ec2Service(this, `${tags.environment}-${tags.service}-db-service`, {
+
+    /**
+     * サービスの作成
+     */
+
+    const xivCraftsmanshipWebService = new Ec2Service(this, `${tags.environment}-${tags.service}-web-service`, {
+      cluster: cluster,
+      taskDefinition: xivCraftsmanshipWebTask,
+      daemon: true,
+    })
+
+    // const xivCraftsmanshipApiService = new Ec2Service(this, `${tags.environment}-${tags.service}-api-service`, {
     //   cluster: cluster,
-    //   taskDefinition: xivCraftsmanshipDbTask,
+    //   taskDefinition: xivCraftsmanshipApiTask,
+    //   daemon: true,
     // })
 
-    // xivCraftsmanshipDbService.autoScaleTaskCount({ maxCapacity: 1 });
+    const xivCraftsmanshipDbService = new Ec2Service(this, `${tags.environment}-${tags.service}-db-service`, {
+      cluster: cluster,
+      taskDefinition: xivCraftsmanshipDbTask,
+      daemon: true,
+    })
 
   }
 }
