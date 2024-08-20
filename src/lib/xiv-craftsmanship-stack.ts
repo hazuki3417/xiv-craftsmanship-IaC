@@ -5,7 +5,6 @@ import { XivCraftsmanshipTagType } from './type';
 import { InstanceClass, InstanceSize, InstanceType, Port, SecurityGroup, SubnetType, Vpc } from 'aws-cdk-lib/aws-ec2';
 import { Cluster, ContainerImage, Ec2Service, Ec2TaskDefinition, LogDriver, NetworkMode } from 'aws-cdk-lib/aws-ecs';
 import * as logs from 'aws-cdk-lib/aws-logs';
-import * as servicediscovery from 'aws-cdk-lib/aws-servicediscovery';
 
 export class XivCraftsmanshipStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: cdk.StackProps) {
@@ -46,15 +45,14 @@ export class XivCraftsmanshipStack extends cdk.Stack {
       maxAzs: 2,
     });
 
-    const sgDb = new SecurityGroup(this, `${tags.environment}-SecurityGroupDb`, {
-      vpc:vpc,
-      description: 'allow api access to db',
-      allowAllOutbound: true,
-    });
+    // const sgDb = new SecurityGroup(this, `${tags.environment}-SecurityGroupDb`, {
+    //   vpc:vpc,
+    //   description: 'allow api access to db',
+    //   allowAllOutbound: true,
+    // });
 
     const sgApi = new SecurityGroup(this, `${tags.environment}-SecurityGroupApi`, {
       vpc:vpc,
-      description: 'allow outbound access to DB',
       allowAllOutbound: true,
     });
 
@@ -62,7 +60,7 @@ export class XivCraftsmanshipStack extends cdk.Stack {
       vpc:vpc,
       allowAllOutbound: true,
     });
-    sgDb.addIngressRule(sgApi, Port.tcp(5432), 'allow api to connect to db');
+    // sgDb.addIngressRule(sgApi, Port.tcp(5432), 'allow api to connect to db');
 
     /***************************************************************************
      * cloud watch logs
@@ -116,10 +114,11 @@ export class XivCraftsmanshipStack extends cdk.Stack {
      * db
      **************************************************************************/
 
-    const xivCraftsmanshipDbTask = new Ec2TaskDefinition(this, `${tags.environment}-${tags.service}-db`, {
+    const xivCraftsmanshipApiTask = new Ec2TaskDefinition(this, `${tags.environment}-${tags.service}-api`, {
       networkMode: NetworkMode.AWS_VPC
     })
-    xivCraftsmanshipDbTask.addContainer(`${tags.environment}-${tags.service}-db-container`, {
+
+    xivCraftsmanshipApiTask.addContainer(`${tags.environment}-${tags.service}-db-container`, {
       image: ContainerImage.fromEcrRepository(ecrDb),
       cpu: 124,
       memoryLimitMiB: 124,
@@ -129,9 +128,7 @@ export class XivCraftsmanshipStack extends cdk.Stack {
         POSTGRES_DB: 'example',
       },
       portMappings: [{
-        // TODO: cloud mapなどを使って接続できるようにする
         containerPort: 5432,
-        // hostPort: 5432,
       }],
       logging: LogDriver.awsLogs({
         logGroup: logDb,
@@ -139,30 +136,6 @@ export class XivCraftsmanshipStack extends cdk.Stack {
       })
     })
 
-   const xivCraftsmanshipDbService = new Ec2Service(this, `${tags.environment}-${tags.service}-db-service`, {
-      cluster: cluster,
-      taskDefinition: xivCraftsmanshipDbTask,
-      daemon: true,
-      securityGroups: [sgDb],
-      cloudMapOptions: {
-        name: `db`,
-        cloudMapNamespace: namespace,
-      },
-      circuitBreaker: {
-        enable: true,
-        rollback: true,
-      }
-    })
-
-
-
-    /***************************************************************************
-     * api
-     **************************************************************************/
-
-    const xivCraftsmanshipApiTask = new Ec2TaskDefinition(this, `${tags.environment}-${tags.service}-api`, {
-      networkMode: NetworkMode.AWS_VPC
-    })
     xivCraftsmanshipApiTask.addContainer(`${tags.environment}-${tags.service}-api-container`, {
       image: ContainerImage.fromEcrRepository(ecrApi),
       cpu: 256,
@@ -170,8 +143,7 @@ export class XivCraftsmanshipStack extends cdk.Stack {
       environment: {
         ENV: tags.environment,
         PORT: "8080",
-        // `${tags.service}-db`.${tags.environment}.local
-        POSTGRE_SQL_HOST: `${xivCraftsmanshipDbService.cloudMapService!.serviceName}.${namespace.namespaceName}`,
+        POSTGRE_SQL_HOST: "localhost:5432",
         POSTGRE_SQL_USERNAME: "example",
         POSTGRE_SQL_PASSWORD: "example",
         POSTGRE_SQL_DB: "example",
@@ -186,21 +158,6 @@ export class XivCraftsmanshipStack extends cdk.Stack {
         streamPrefix: `${tags.environment}-${tags.service}-api`,
       })
     })
-
-    // const xivCraftsmanshipApiService = new Ec2Service(this, `${tags.environment}-${tags.service}-api-service`, {
-    //   cluster: cluster,
-    //   taskDefinition: xivCraftsmanshipApiTask,
-    //   daemon: true,
-    //   securityGroups: [sgApi],
-    //   cloudMapOptions: {
-    //     name: `${tags.service}-api`,
-    //     cloudMapNamespace: namespace,
-    //   },
-    //   circuitBreaker: {
-    //     enable: true,
-    //     rollback: true,
-    //   }
-    // })
 
     /***************************************************************************
      * web
@@ -221,11 +178,39 @@ export class XivCraftsmanshipStack extends cdk.Stack {
       })
     })
 
+
+
+    /***************************************************************************
+     * deploy
+     **************************************************************************/
+
+    // const xivCraftsmanshipApiService = new Ec2Service(this, `${tags.environment}-${tags.service}-api-service`, {
+    //   cluster: cluster,
+    //   taskDefinition: xivCraftsmanshipApiTask,
+    //   daemon: true,
+    //   securityGroups: [sgApi],
+    //   vpcSubnets: {
+    //     subnetType: SubnetType.PRIVATE_WITH_EGRESS
+    //   },
+    //   cloudMapOptions: {
+    //     name: `api`,
+    //     cloudMapNamespace: namespace,
+    //   },
+    //   // circuitBreaker: {
+    //   //   enable: true,
+    //   //   rollback: true,
+    //   // }
+    // })
+
+
     const xivCraftsmanshipWebService = new Ec2Service(this, `${tags.environment}-${tags.service}-web-service`, {
       cluster: cluster,
       taskDefinition: xivCraftsmanshipWebTask,
       daemon: true,
       securityGroups: [sgWeb],
+      vpcSubnets: {
+        subnetType: SubnetType.PUBLIC
+      },
       cloudMapOptions: {
         name: `web`,
         cloudMapNamespace: namespace,
