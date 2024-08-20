@@ -108,7 +108,7 @@ export class XivCraftsmanshipStack extends cdk.Stack {
      * service discoveryを用いて名前によるサービス間通信を実現する
      */
     const namespace = cluster.addDefaultCloudMapNamespace({
-      name: `${tags.environment}.local`
+      name: `${tags.environment}.${tags.service}`
     })
 
 
@@ -145,8 +145,12 @@ export class XivCraftsmanshipStack extends cdk.Stack {
       daemon: true,
       securityGroups: [sgDb],
       cloudMapOptions: {
-        name: `${tags.service}-db`,
+        name: `db`,
         cloudMapNamespace: namespace,
+      },
+      circuitBreaker: {
+        enable: true,
+        rollback: true,
       }
     })
 
@@ -166,7 +170,8 @@ export class XivCraftsmanshipStack extends cdk.Stack {
       environment: {
         ENV: tags.environment,
         PORT: "8080",
-        // POSTGRE_SQL_HOST: `${xivCraftsmanshipDbService.cloudMapService!.serviceName}.${namespace.namespaceName}`,
+        // `${tags.service}-db`.${tags.environment}.local
+        POSTGRE_SQL_HOST: `${xivCraftsmanshipDbService.cloudMapService!.serviceName}.${namespace.namespaceName}`,
         POSTGRE_SQL_USERNAME: "example",
         POSTGRE_SQL_PASSWORD: "example",
         POSTGRE_SQL_DB: "example",
@@ -190,6 +195,10 @@ export class XivCraftsmanshipStack extends cdk.Stack {
     //   cloudMapOptions: {
     //     name: `${tags.service}-api`,
     //     cloudMapNamespace: namespace,
+    //   },
+    //   circuitBreaker: {
+    //     enable: true,
+    //     rollback: true,
     //   }
     // })
 
@@ -217,6 +226,14 @@ export class XivCraftsmanshipStack extends cdk.Stack {
       taskDefinition: xivCraftsmanshipWebTask,
       daemon: true,
       securityGroups: [sgWeb],
+      cloudMapOptions: {
+        name: `web`,
+        cloudMapNamespace: namespace,
+      },
+      circuitBreaker: {
+        enable: true,
+        rollback: true,
+      }
     })
   }
 }
