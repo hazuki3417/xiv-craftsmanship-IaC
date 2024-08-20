@@ -139,16 +139,16 @@ export class XivCraftsmanshipStack extends cdk.Stack {
       })
     })
 
-  //  const xivCraftsmanshipDbService = new Ec2Service(this, `${tags.environment}-${tags.service}-db-service`, {
-  //     cluster: cluster,
-  //     taskDefinition: xivCraftsmanshipDbTask,
-  //     daemon: true,
-  //     securityGroups: [sgDb],
-  //     cloudMapOptions: {
-  //       name: `${tags.service}-db`,
-  //       cloudMapNamespace: namespace,
-  //     }
-  //   })
+   const xivCraftsmanshipDbService = new Ec2Service(this, `${tags.environment}-${tags.service}-db-service`, {
+      cluster: cluster,
+      taskDefinition: xivCraftsmanshipDbTask,
+      daemon: true,
+      securityGroups: [sgDb],
+      cloudMapOptions: {
+        name: `${tags.service}-db`,
+        cloudMapNamespace: namespace,
+      }
+    })
 
 
 
@@ -212,12 +212,11 @@ export class XivCraftsmanshipStack extends cdk.Stack {
       })
     })
 
-
-    // const xivCraftsmanshipWebService = new Ec2Service(this, `${tags.environment}-${tags.service}-web-service`, {
-    //   cluster: cluster,
-    //   taskDefinition: xivCraftsmanshipWebTask,
-    //   daemon: true,
-    //   // securityGroups: [sgWeb],
-    // })
+    const xivCraftsmanshipWebService = new Ec2Service(this, `${tags.environment}-${tags.service}-web-service`, {
+      cluster: cluster,
+      taskDefinition: xivCraftsmanshipWebTask,
+      daemon: true,
+      securityGroups: [sgWeb],
+    })
   }
 }
