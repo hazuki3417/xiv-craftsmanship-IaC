@@ -1,9 +1,9 @@
-import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import * as ecr from 'aws-cdk-lib/aws-ecr';
 import { XivCraftsmanshipTagType } from './type';
-import { InstanceClass, InstanceSize, InstanceType, Port, SecurityGroup, SubnetType, Vpc } from 'aws-cdk-lib/aws-ec2';
-import { Cluster, ContainerImage, Ec2Service, Ec2TaskDefinition, LogDriver, NetworkMode } from 'aws-cdk-lib/aws-ecs';
+import * as cdk from 'aws-cdk-lib';
+import * as ec2  from 'aws-cdk-lib/aws-ec2';
+import * as ecr from 'aws-cdk-lib/aws-ecr';
+import * as ecs  from 'aws-cdk-lib/aws-ecs';
 import * as logs from 'aws-cdk-lib/aws-logs';
 
 export class XivCraftsmanshipStack extends cdk.Stack {
@@ -41,22 +41,16 @@ export class XivCraftsmanshipStack extends cdk.Stack {
      * network
      **************************************************************************/
 
-    const vpc = new Vpc(this, `${tags.environment}-Vpc`, {
+    const vpc = new ec2.Vpc(this, `${tags.environment}-Vpc`, {
       maxAzs: 2,
     });
 
-    // const sgDb = new SecurityGroup(this, `${tags.environment}-SecurityGroupDb`, {
-    //   vpc:vpc,
-    //   description: 'allow api access to db',
-    //   allowAllOutbound: true,
-    // });
-
-    const sgApi = new SecurityGroup(this, `${tags.environment}-SecurityGroupApi`, {
+    const sgApi = new ec2.SecurityGroup(this, `${tags.environment}-SecurityGroupApi`, {
       vpc:vpc,
       allowAllOutbound: true,
     });
 
-    const sgWeb = new SecurityGroup(this, `${tags.environment}-SecurityGroupWeb`, {
+    const sgWeb = new ec2.SecurityGroup(this, `${tags.environment}-SecurityGroupWeb`, {
       vpc:vpc,
       allowAllOutbound: true,
     });
@@ -87,7 +81,7 @@ export class XivCraftsmanshipStack extends cdk.Stack {
      * ecs cluster
      **************************************************************************/
 
-    const cluster = new Cluster(this, `${tags.environment}-Cluster`, {
+    const cluster = new ecs.Cluster(this, `${tags.environment}-Cluster`, {
       vpc: vpc,
     })
 
@@ -98,8 +92,8 @@ export class XivCraftsmanshipStack extends cdk.Stack {
      */
 
     cluster.addCapacity(`${tags.environment}-Capacity`, {
-      instanceType: new InstanceType(`${InstanceClass.T3A}.${InstanceSize.MEDIUM}`),
-      vpcSubnets: { subnetType: SubnetType.PUBLIC},
+      instanceType: new ec2.InstanceType(`${ec2.InstanceClass.T3A}.${ec2.InstanceSize.MEDIUM}`),
+      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC},
     })
 
     /**
@@ -114,12 +108,13 @@ export class XivCraftsmanshipStack extends cdk.Stack {
      * db
      **************************************************************************/
 
-    const xivCraftsmanshipApiTask = new Ec2TaskDefinition(this, `${tags.environment}-${tags.service}-api`, {
-      networkMode: NetworkMode.AWS_VPC
+    const xivCraftsmanshipApiTask = new ecs.TaskDefinition(this, `${tags.environment}-${tags.service}-api`, {
+      compatibility: ecs.Compatibility.EC2,
+      networkMode: ecs.NetworkMode.AWS_VPC,
     })
 
     xivCraftsmanshipApiTask.addContainer(`${tags.environment}-${tags.service}-db-container`, {
-      image: ContainerImage.fromEcrRepository(ecrDb),
+      image: ecs.ContainerImage.fromEcrRepository(ecrDb),
       cpu: 124,
       memoryLimitMiB: 124,
       environment: {
@@ -130,14 +125,14 @@ export class XivCraftsmanshipStack extends cdk.Stack {
       portMappings: [{
         containerPort: 5432,
       }],
-      logging: LogDriver.awsLogs({
+      logging: ecs.LogDriver.awsLogs({
         logGroup: logDb,
         streamPrefix: `${tags.environment}-${tags.service}-db`,
       })
     })
 
     xivCraftsmanshipApiTask.addContainer(`${tags.environment}-${tags.service}-api-container`, {
-      image: ContainerImage.fromEcrRepository(ecrApi),
+      image: ecs.ContainerImage.fromEcrRepository(ecrApi),
       cpu: 256,
       memoryLimitMiB: 256,
       environment: {
@@ -149,30 +144,29 @@ export class XivCraftsmanshipStack extends cdk.Stack {
         POSTGRE_SQL_DB: "example",
       },
       portMappings: [{
-      //   // TODO: cloud mapなどを使って接続できるようにする
         containerPort: 8080,
-      //   hostPort: 8080,
       }],
-      logging: LogDriver.awsLogs({
+      logging: ecs.LogDriver.awsLogs({
         logGroup: logApi,
         streamPrefix: `${tags.environment}-${tags.service}-api`,
-      })
+      }),
     })
 
     /***************************************************************************
      * web
      **************************************************************************/
 
-    const xivCraftsmanshipWebTask = new Ec2TaskDefinition(this, `${tags.environment}-${tags.service}-web`, {
-      networkMode: NetworkMode.AWS_VPC
+    const xivCraftsmanshipWebTask = new ecs.TaskDefinition(this, `${tags.environment}-${tags.service}-web`, {
+      compatibility: ecs.Compatibility.EC2,
+      networkMode: ecs.NetworkMode.AWS_VPC,
     })
     xivCraftsmanshipWebTask.addContainer(`${tags.environment}-${tags.service}-web-container`, {
-      image: ContainerImage.fromEcrRepository(ecrWeb),
+      image: ecs.ContainerImage.fromEcrRepository(ecrWeb),
       cpu: 256,
       memoryLimitMiB: 512,
       environment: {
       },
-      logging: LogDriver.awsLogs({
+      logging: ecs.LogDriver.awsLogs({
         logGroup: logWeb,
         streamPrefix: `${tags.environment}-${tags.service}-web`,
       })
@@ -184,13 +178,13 @@ export class XivCraftsmanshipStack extends cdk.Stack {
      * deploy
      **************************************************************************/
 
-    // const xivCraftsmanshipApiService = new Ec2Service(this, `${tags.environment}-${tags.service}-api-service`, {
+    // const xivCraftsmanshipApiService = new ecs.Ec2Service(this, `${tags.environment}-${tags.service}-api-service`, {
     //   cluster: cluster,
     //   taskDefinition: xivCraftsmanshipApiTask,
     //   daemon: true,
     //   securityGroups: [sgApi],
     //   vpcSubnets: {
-    //     subnetType: SubnetType.PRIVATE_WITH_EGRESS
+    //     subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS
     //   },
     //   cloudMapOptions: {
     //     name: `api`,
@@ -203,13 +197,13 @@ export class XivCraftsmanshipStack extends cdk.Stack {
     // })
 
 
-    const xivCraftsmanshipWebService = new Ec2Service(this, `${tags.environment}-${tags.service}-web-service`, {
+    const xivCraftsmanshipWebService = new ecs.Ec2Service(this, `${tags.environment}-${tags.service}-web-service`, {
       cluster: cluster,
       taskDefinition: xivCraftsmanshipWebTask,
       daemon: true,
       securityGroups: [sgWeb],
       vpcSubnets: {
-        subnetType: SubnetType.PUBLIC
+        subnetType: ec2.SubnetType.PUBLIC
       },
       cloudMapOptions: {
         name: `web`,
