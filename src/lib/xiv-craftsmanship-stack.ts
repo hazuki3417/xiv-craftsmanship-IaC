@@ -45,15 +45,12 @@ export class XivCraftsmanshipStack extends cdk.Stack {
       maxAzs: 2,
     });
 
-    const sgApi = new ec2.SecurityGroup(this, `${tags.environment}-SecurityGroupApi`, {
+    const sgApp = new ec2.SecurityGroup(this, `${tags.environment}-SecurityGroupApp`, {
       vpc:vpc,
       allowAllOutbound: true,
     });
 
-    const sgWeb = new ec2.SecurityGroup(this, `${tags.environment}-SecurityGroupWeb`, {
-      vpc:vpc,
-      allowAllOutbound: true,
-    });
+    sgApp.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(80), 'Allow HTTP traffic from anywhere');
 
     /***************************************************************************
      * cloud watch logs
@@ -95,24 +92,16 @@ export class XivCraftsmanshipStack extends cdk.Stack {
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC},
     })
 
-    /**
-     * service discoveryを用いて名前によるサービス間通信を実現する
-     */
-    const namespace = cluster.addDefaultCloudMapNamespace({
-      name: `${tags.environment}.${tags.service}`
-    })
-
-
     /***************************************************************************
      * db
      **************************************************************************/
 
-    const xivCraftsmanshipApiTask = new ecs.TaskDefinition(this, `${tags.environment}-${tags.service}-api`, {
+    const xivCraftsmanshipAppTask = new ecs.TaskDefinition(this, `${tags.environment}-${tags.service}-app`, {
       compatibility: ecs.Compatibility.EC2,
-      networkMode: ecs.NetworkMode.AWS_VPC,
+      networkMode: ecs.NetworkMode.BRIDGE,
     })
 
-    const containerDb = xivCraftsmanshipApiTask.addContainer(`${tags.environment}-${tags.service}-db-container`, {
+    const containerDb = xivCraftsmanshipAppTask.addContainer(`${tags.environment}-${tags.service}-db-container`, {
       image: ecs.ContainerImage.fromEcrRepository(ecrDb),
       cpu: 124,
       memoryLimitMiB: 124,
@@ -130,7 +119,7 @@ export class XivCraftsmanshipStack extends cdk.Stack {
       }),
     })
 
-    const containerApi = xivCraftsmanshipApiTask.addContainer(`${tags.environment}-${tags.service}-api-container`, {
+    const containerApi = xivCraftsmanshipAppTask.addContainer(`${tags.environment}-${tags.service}-api-container`, {
       image: ecs.ContainerImage.fromEcrRepository(ecrApi),
       cpu: 256,
       memoryLimitMiB: 256,
@@ -151,20 +140,16 @@ export class XivCraftsmanshipStack extends cdk.Stack {
       }),
     })
 
-    /***************************************************************************
-     * web
-     **************************************************************************/
-
-    const xivCraftsmanshipWebTask = new ecs.TaskDefinition(this, `${tags.environment}-${tags.service}-web`, {
-      compatibility: ecs.Compatibility.EC2,
-      networkMode: ecs.NetworkMode.AWS_VPC,
-    })
-    const containerWeb = xivCraftsmanshipWebTask.addContainer(`${tags.environment}-${tags.service}-web-container`, {
+    const containerWeb = xivCraftsmanshipAppTask.addContainer(`${tags.environment}-${tags.service}-web-container`, {
       image: ecs.ContainerImage.fromEcrRepository(ecrWeb),
       cpu: 256,
       memoryLimitMiB: 512,
       environment: {
       },
+      portMappings: [{
+        containerPort: 3000,
+        hostPort: 80,
+      }],
       logging: ecs.LogDriver.awsLogs({
         logGroup: logWeb,
         streamPrefix: `${tags.environment}-${tags.service}-web`,
@@ -172,46 +157,18 @@ export class XivCraftsmanshipStack extends cdk.Stack {
     })
 
 
-
     /***************************************************************************
      * deploy
      **************************************************************************/
 
-    // const xivCraftsmanshipApiService = new ecs.Ec2Service(this, `${tags.environment}-${tags.service}-api-service`, {
-    //   cluster: cluster,
-    //   taskDefinition: xivCraftsmanshipApiTask,
-    //   daemon: true,
-    //   securityGroups: [sgApi],
-    //   vpcSubnets: {
-    //     subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS
-    //   },
-    //   cloudMapOptions: {
-    //     name: `api`,
-    //     cloudMapNamespace: namespace,
-    //   },
-    //   // circuitBreaker: {
-    //   //   enable: true,
-    //   //   rollback: true,
-    //   // }
-    // })
-
-
-  //   const xivCraftsmanshipWebService = new ecs.Ec2Service(this, `${tags.environment}-${tags.service}-web-service`, {
-  //     cluster: cluster,
-  //     taskDefinition: xivCraftsmanshipWebTask,
-  //     daemon: true,
-  //     securityGroups: [sgWeb],
-  //     vpcSubnets: {
-  //       subnetType: ec2.SubnetType.PUBLIC
-  //     },
-  //     cloudMapOptions: {
-  //       name: `web`,
-  //       cloudMapNamespace: namespace,
-  //     },
-  //     circuitBreaker: {
-  //       enable: true,
-  //       rollback: true,
-  //     }
-  //   })
+    const xivCraftsmanshipAppService = new ecs.Ec2Service(this, `${tags.environment}-${tags.service}-app-service`, {
+      cluster: cluster,
+      taskDefinition: xivCraftsmanshipAppTask,
+      daemon: true,
+      circuitBreaker: {
+        enable: true,
+        rollback: true,
+      }
+    })
   }
 }
