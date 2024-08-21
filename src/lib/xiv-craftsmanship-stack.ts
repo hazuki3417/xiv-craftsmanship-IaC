@@ -54,7 +54,6 @@ export class XivCraftsmanshipStack extends cdk.Stack {
       vpc:vpc,
       allowAllOutbound: true,
     });
-    // sgDb.addIngressRule(sgApi, Port.tcp(5432), 'allow api to connect to db');
 
     /***************************************************************************
      * cloud watch logs
@@ -113,7 +112,7 @@ export class XivCraftsmanshipStack extends cdk.Stack {
       networkMode: ecs.NetworkMode.AWS_VPC,
     })
 
-    xivCraftsmanshipApiTask.addContainer(`${tags.environment}-${tags.service}-db-container`, {
+    const containerDb = xivCraftsmanshipApiTask.addContainer(`${tags.environment}-${tags.service}-db-container`, {
       image: ecs.ContainerImage.fromEcrRepository(ecrDb),
       cpu: 124,
       memoryLimitMiB: 124,
@@ -128,17 +127,17 @@ export class XivCraftsmanshipStack extends cdk.Stack {
       logging: ecs.LogDriver.awsLogs({
         logGroup: logDb,
         streamPrefix: `${tags.environment}-${tags.service}-db`,
-      })
+      }),
     })
 
-    xivCraftsmanshipApiTask.addContainer(`${tags.environment}-${tags.service}-api-container`, {
+    const containerApi = xivCraftsmanshipApiTask.addContainer(`${tags.environment}-${tags.service}-api-container`, {
       image: ecs.ContainerImage.fromEcrRepository(ecrApi),
       cpu: 256,
       memoryLimitMiB: 256,
       environment: {
         ENV: tags.environment,
         PORT: "8080",
-        POSTGRE_SQL_HOST: "localhost:5432",
+        POSTGRE_SQL_HOST: "localhost",
         POSTGRE_SQL_USERNAME: "example",
         POSTGRE_SQL_PASSWORD: "example",
         POSTGRE_SQL_DB: "example",
@@ -160,7 +159,7 @@ export class XivCraftsmanshipStack extends cdk.Stack {
       compatibility: ecs.Compatibility.EC2,
       networkMode: ecs.NetworkMode.AWS_VPC,
     })
-    xivCraftsmanshipWebTask.addContainer(`${tags.environment}-${tags.service}-web-container`, {
+    const containerWeb = xivCraftsmanshipWebTask.addContainer(`${tags.environment}-${tags.service}-web-container`, {
       image: ecs.ContainerImage.fromEcrRepository(ecrWeb),
       cpu: 256,
       memoryLimitMiB: 512,
@@ -197,22 +196,22 @@ export class XivCraftsmanshipStack extends cdk.Stack {
     // })
 
 
-    const xivCraftsmanshipWebService = new ecs.Ec2Service(this, `${tags.environment}-${tags.service}-web-service`, {
-      cluster: cluster,
-      taskDefinition: xivCraftsmanshipWebTask,
-      daemon: true,
-      securityGroups: [sgWeb],
-      vpcSubnets: {
-        subnetType: ec2.SubnetType.PUBLIC
-      },
-      cloudMapOptions: {
-        name: `web`,
-        cloudMapNamespace: namespace,
-      },
-      circuitBreaker: {
-        enable: true,
-        rollback: true,
-      }
-    })
+  //   const xivCraftsmanshipWebService = new ecs.Ec2Service(this, `${tags.environment}-${tags.service}-web-service`, {
+  //     cluster: cluster,
+  //     taskDefinition: xivCraftsmanshipWebTask,
+  //     daemon: true,
+  //     securityGroups: [sgWeb],
+  //     vpcSubnets: {
+  //       subnetType: ec2.SubnetType.PUBLIC
+  //     },
+  //     cloudMapOptions: {
+  //       name: `web`,
+  //       cloudMapNamespace: namespace,
+  //     },
+  //     circuitBreaker: {
+  //       enable: true,
+  //       rollback: true,
+  //     }
+  //   })
   }
 }
