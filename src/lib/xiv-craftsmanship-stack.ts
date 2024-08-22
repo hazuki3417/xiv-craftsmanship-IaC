@@ -5,6 +5,8 @@ import * as ec2  from 'aws-cdk-lib/aws-ec2';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as ecs  from 'aws-cdk-lib/aws-ecs';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import * as  autoscaling from 'aws-cdk-lib/aws-autoscaling';
+
 
 export class XivCraftsmanshipStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: cdk.StackProps) {
@@ -81,16 +83,20 @@ export class XivCraftsmanshipStack extends cdk.Stack {
       vpc: vpc,
     })
 
-
-    /**
-     * NOTE: t2.microはENIの数が2つ。aws vpcモードを利用するとすぐに枯渇するので、t3a.mediumを利用している。
-     *       ランニングコストが高かったらネットワークモードをbrideにして、1つのサービスで稼働させる方法を検討する。
-     */
-
-    cluster.addCapacity(`${tags.environment}-Capacity`, {
+    const autoScalingGroup = new autoscaling.AutoScalingGroup(this, `${tags.environment}-AutoScalingGroup`, {
+      vpc: vpc,
       instanceType: new ec2.InstanceType(`${ec2.InstanceClass.T3A}.${ec2.InstanceSize.MEDIUM}`),
+      machineImage: ec2.MachineImage.latestAmazonLinux2(),
+      securityGroup: sgApp,
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC},
+      minCapacity: 1,
     })
+
+    const capacityProvider = new ecs.AsgCapacityProvider(this, `${tags.environment}-CapacityProvider`, {
+      autoScalingGroup: autoScalingGroup,
+    })
+
+    cluster.addAsgCapacityProvider(capacityProvider)
 
     /***************************************************************************
      * db
@@ -153,7 +159,7 @@ export class XivCraftsmanshipStack extends cdk.Stack {
       logging: ecs.LogDriver.awsLogs({
         logGroup: logWeb,
         streamPrefix: `${tags.environment}-${tags.service}-web`,
-      })
+      }),
     })
 
 
@@ -161,14 +167,14 @@ export class XivCraftsmanshipStack extends cdk.Stack {
      * deploy
      **************************************************************************/
 
-    const xivCraftsmanshipAppService = new ecs.Ec2Service(this, `${tags.environment}-${tags.service}-app-service`, {
-      cluster: cluster,
-      taskDefinition: xivCraftsmanshipAppTask,
-      daemon: true,
-      circuitBreaker: {
-        enable: true,
-        rollback: true,
-      }
-    })
+    // const xivCraftsmanshipAppService = new ecs.Ec2Service(this, `${tags.environment}-${tags.service}-app-service`, {
+    //   cluster: cluster,
+    //   taskDefinition: xivCraftsmanshipAppTask,
+    //   daemon: true,
+    //   circuitBreaker: {
+    //     enable: true,
+    //     rollback: true,
+    //   },
+    // })
   }
 }
