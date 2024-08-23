@@ -20,17 +20,17 @@ export class XivCraftsmanshipStack extends cdk.Stack {
 
     const ecrDb = new ecr.Repository(this, `${tags.environment}-EcrRepositoryDb`, {
       repositoryName: `${tags.environment}-${tags.service}-db`,
-      removalPolicy: cdk.RemovalPolicy.RETAIN,
+      removalPolicy: cdk.RemovalPolicy.RETAIN_ON_UPDATE_OR_DELETE
     });
 
     const ecrApi = new ecr.Repository(this, `${tags.environment}-EcrRepositoryApi`, {
       repositoryName: `${tags.environment}-${tags.service}-api`,
-      removalPolicy: cdk.RemovalPolicy.RETAIN,
+      removalPolicy: cdk.RemovalPolicy.RETAIN_ON_UPDATE_OR_DELETE,
     });
 
     const ecrWeb = new ecr.Repository(this, `${tags.environment}-EcrRepositoryWeb`, {
       repositoryName: `${tags.environment}-${tags.service}-web`,
-      removalPolicy: cdk.RemovalPolicy.RETAIN,
+      removalPolicy: cdk.RemovalPolicy.RETAIN_ON_UPDATE_OR_DELETE,
     });
 
     ecrDb.addLifecycleRule({ maxImageCount: 5 });
@@ -83,28 +83,15 @@ export class XivCraftsmanshipStack extends cdk.Stack {
       vpc: vpc,
     })
 
-    const autoScalingGroup = new autoscaling.AutoScalingGroup(this, `${tags.environment}-AutoScalingGroup`, {
-      vpc: vpc,
-      instanceType: new ec2.InstanceType(`${ec2.InstanceClass.T3A}.${ec2.InstanceSize.MEDIUM}`),
-      machineImage: ec2.MachineImage.latestAmazonLinux2(),
-      securityGroup: sgApp,
-      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC},
-      minCapacity: 1,
-    })
-
-    const capacityProvider = new ecs.AsgCapacityProvider(this, `${tags.environment}-CapacityProvider`, {
-      autoScalingGroup: autoScalingGroup,
-    })
-
-    cluster.addAsgCapacityProvider(capacityProvider)
 
     /***************************************************************************
      * db
      **************************************************************************/
 
     const xivCraftsmanshipAppTask = new ecs.TaskDefinition(this, `${tags.environment}-${tags.service}-app`, {
-      compatibility: ecs.Compatibility.EC2,
-      networkMode: ecs.NetworkMode.BRIDGE,
+      compatibility: ecs.Compatibility.FARGATE,
+      cpu: '1024', // Adjust based on your requirements
+      memoryMiB: '2048', // Adjust based on your requirements
     })
 
     const containerDb = xivCraftsmanshipAppTask.addContainer(`${tags.environment}-${tags.service}-db-container`, {
@@ -154,7 +141,6 @@ export class XivCraftsmanshipStack extends cdk.Stack {
       },
       portMappings: [{
         containerPort: 3000,
-        hostPort: 80,
       }],
       logging: ecs.LogDriver.awsLogs({
         logGroup: logWeb,
@@ -167,14 +153,12 @@ export class XivCraftsmanshipStack extends cdk.Stack {
      * deploy
      **************************************************************************/
 
-    // const xivCraftsmanshipAppService = new ecs.Ec2Service(this, `${tags.environment}-${tags.service}-app-service`, {
+    // const xivCraftsmanshipAppService = new ecs.FargateService(this, `${tags.environment}-${tags.service}-app-service`, {
     //   cluster: cluster,
     //   taskDefinition: xivCraftsmanshipAppTask,
-    //   daemon: true,
-    //   circuitBreaker: {
-    //     enable: true,
-    //     rollback: true,
-    //   },
+    //   securityGroups: [sgApp],
+    //   vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
+    //   desiredCount: 1,
     // })
   }
 }
