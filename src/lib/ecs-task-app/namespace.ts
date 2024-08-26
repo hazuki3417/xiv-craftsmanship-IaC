@@ -1,17 +1,11 @@
 import { create, NamespaceParams } from "../../util/resource";
 
 export const namespace = (args: NamespaceParams) =>{
-  const vpc = create({...args, id: 'Ec2Vpc', name: 'app'});
-  const sg = create({...args, id: 'Ec2SecurityGroup', name: 'app'});
-
   const logDb = create({...args, id: 'LogsLogGroup', name: 'db'});
   const logApi = create({...args, id: 'LogsLogGroup', name: 'api'});
   const logWeb = create({...args, id: 'LogsLogGroup', name: 'web'});
 
-  const cluster = create({...args, id: 'EcsCluster', name: 'app'});
-
   const role = create({...args, id: 'EcsTaskIamRole', name: 'app'});
-
   const task = create({...args, id: 'EcsTask', name: 'app'});
 
   return {
@@ -37,7 +31,10 @@ export const namespace = (args: NamespaceParams) =>{
         },
         define: {
           app: {
-            resource: {...task}
+            resource: {...task},
+            cfn: {
+              arn: task.cfn('Arn'),
+            }
           }
         },
       }

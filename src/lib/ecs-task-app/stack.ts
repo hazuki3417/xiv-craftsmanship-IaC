@@ -129,5 +129,10 @@ export class EcsTaskApp extends cdk.Stack {
         streamPrefix: `${tags.environment}-${tags.service}-web`,
       }),
     })
+
+    new cdk.CfnOutput(this, name.ecs.task.define.app.cfn.arn.id, {
+      value: xivCraftsmanshipAppTask.taskDefinitionArn,
+      exportName: name.ecs.task.define.app.cfn.arn.export,
+    });
   }
 }
