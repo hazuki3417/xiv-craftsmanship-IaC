@@ -1,25 +1,34 @@
 #!/usr/bin/env node
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
-import { XivCraftsmanshipStack } from '../lib/xiv-craftsmanship-stack';
-import { verifyEnvName, getEnvName } from '../lib/environment';
+import { stage } from '../util/stage';
 import { XivCraftsmanshipTagType } from '../lib/type';
-import { XivCraftsmanshipCiCdStack } from '../lib/xiv-craftsmanship-cicd-stack';
+import { Ecr } from '../lib/ecr';
+import { GitHubActions } from '../lib/github-actions';
+import { Infrastructure } from '../lib/infrastructure';
+import { EcsTaskApp } from '../lib/ecs-task-app';
 
-verifyEnvName();
+stage.env.verify();
 
 const tags = {
     service: 'xiv-craftsmanship',
-    environment: getEnvName(),
+    environment: stage.env.get(),
 } as XivCraftsmanshipTagType
 
 const app = new cdk.App();
 
-new XivCraftsmanshipCiCdStack(app, 'XivCraftsmanshipCiCdStack', {
+new GitHubActions(app, 'XivCraftsmanship-GitHubActions', {
   tags
 })
 
-new XivCraftsmanshipStack(app, 'XivCraftsmanshipStack', {
+new Ecr(app, 'XivCraftsmanship-Ecr', {
   tags
-});
+})
 
+new Infrastructure(app, 'XivCraftsmanship-Infrastructure', {
+  tags
+})
+
+new EcsTaskApp(app, 'XivCraftsmanship-EcsTaskApp', {
+  tags
+})
