@@ -20,7 +20,7 @@ export class Infrastructure extends cdk.Stack {
 
 		const vpc = new ec2.Vpc(this, name.ec2.vpc.resource.id, {
 			vpcName: name.ec2.vpc.resource.name,
-			maxAzs: 2,
+			availabilityZones: ["ap-northeast-1a", "ap-northeast-1c"],
 		});
 
 		const sgApp = new ec2.SecurityGroup(this, name.ec2.sg.resource.id, {
@@ -70,6 +70,11 @@ export class Infrastructure extends cdk.Stack {
 		const cluster = new ecs.Cluster(this, name.ecs.cluster.resource.id, {
 			clusterName: name.ecs.cluster.resource.name,
 			vpc: vpc,
+		});
+
+		new cdk.CfnOutput(this, name.ec2.vpc.cfn.vpcId.exportId, {
+			value: vpc.vpcId,
+			exportName: name.ec2.vpc.cfn.vpcId.exportName,
 		});
 
 		new cdk.CfnOutput(this, name.ec2.sg.cfn.securityGroupId.exportId, {
