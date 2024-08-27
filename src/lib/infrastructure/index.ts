@@ -1,2 +1,1 @@
-export * from './stack';
-export * from './namespace';
+export * from "./stack";
