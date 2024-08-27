@@ -12,22 +12,30 @@ export class Infrastructure extends cdk.Stack {
 	constructor(scope: Construct, id: string, props: cdk.StackProps) {
 		super(scope, id, props);
 		const tags = props.tags as XivCraftsmanshipTagType;
-		const name = namespace({ env: tags.environment, service: tags.service })
+		const name = namespace({ env: tags.environment, service: tags.service });
 
 		/***************************************************************************
 		 * network
 		 **************************************************************************/
 
-		const vpc = new ec2.Vpc(this, name.stack.infrastructure.src.ec2.vpc.resource.id, {
-			vpcName: name.stack.infrastructure.src.ec2.vpc.resource.name,
-			maxAzs: 2,
-		});
+		const vpc = new ec2.Vpc(
+			this,
+			name.stack.infrastructure.src.ec2.vpc.resource.id,
+			{
+				vpcName: name.stack.infrastructure.src.ec2.vpc.resource.name,
+				maxAzs: 2,
+			},
+		);
 
-		const sgApp = new ec2.SecurityGroup(this, name.stack.infrastructure.src.ec2.sg.resource.id, {
-			securityGroupName: name.stack.infrastructure.src.ec2.sg.resource.name,
-			vpc: vpc,
-			allowAllOutbound: true,
-		});
+		const sgApp = new ec2.SecurityGroup(
+			this,
+			name.stack.infrastructure.src.ec2.sg.resource.id,
+			{
+				securityGroupName: name.stack.infrastructure.src.ec2.sg.resource.name,
+				vpc: vpc,
+				allowAllOutbound: true,
+			},
+		);
 
 		sgApp.addIngressRule(
 			ec2.Peer.anyIpv4(),
@@ -40,23 +48,33 @@ export class Infrastructure extends cdk.Stack {
 			"Allow HTTPS traffic from anywhere",
 		);
 
-		vpc.addGatewayEndpoint(name.stack.infrastructure.src.ec2.vpc.gateway.ecr.resource.id, {
-			service: ec2.GatewayVpcEndpointAwsService.S3,
-			subnets: [{ subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS }],
-		});
-
-		vpc.addInterfaceEndpoint(name.stack.infrastructure.src.ec2.vpc.interface.ecr.resource.id, {
-			service: ec2.InterfaceVpcEndpointAwsService.ECR,
-			subnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
-		});
-
-		vpc.addInterfaceEndpoint(name.stack.infrastructure.src.ec2.vpc.interface.ecrDocker.resource.id, {
-			service: ec2.InterfaceVpcEndpointAwsService.ECR_DOCKER,
-			subnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
-		});
+		vpc.addGatewayEndpoint(
+			name.stack.infrastructure.src.ec2.vpc.gateway.ecr.resource.id,
+			{
+				service: ec2.GatewayVpcEndpointAwsService.S3,
+				subnets: [{ subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS }],
+			},
+		);
 
 		vpc.addInterfaceEndpoint(
-			name.stack.infrastructure.src.ec2.vpc.interface.cloudwatchLogs.resource.id,
+			name.stack.infrastructure.src.ec2.vpc.interface.ecr.resource.id,
+			{
+				service: ec2.InterfaceVpcEndpointAwsService.ECR,
+				subnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+			},
+		);
+
+		vpc.addInterfaceEndpoint(
+			name.stack.infrastructure.src.ec2.vpc.interface.ecrDocker.resource.id,
+			{
+				service: ec2.InterfaceVpcEndpointAwsService.ECR_DOCKER,
+				subnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+			},
+		);
+
+		vpc.addInterfaceEndpoint(
+			name.stack.infrastructure.src.ec2.vpc.interface.cloudwatchLogs.resource
+				.id,
 			{
 				service: ec2.InterfaceVpcEndpointAwsService.CLOUDWATCH_LOGS,
 				subnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
@@ -67,10 +85,14 @@ export class Infrastructure extends cdk.Stack {
 		 * ecs cluster
 		 **************************************************************************/
 
-		const cluster = new ecs.Cluster(this, name.stack.infrastructure.src.ecs.cluster.resource.id, {
-			clusterName: name.stack.infrastructure.src.ecs.cluster.resource.name,
-			vpc: vpc,
-		});
+		const cluster = new ecs.Cluster(
+			this,
+			name.stack.infrastructure.src.ecs.cluster.resource.id,
+			{
+				clusterName: name.stack.infrastructure.src.ecs.cluster.resource.name,
+				vpc: vpc,
+			},
+		);
 
 		/***************************************************************************
 		 * cloud watch logs
@@ -80,7 +102,8 @@ export class Infrastructure extends cdk.Stack {
 			this,
 			name.stack.infrastructure.src.logs.logGroup.db.resource.id,
 			{
-				logGroupName: name.stack.infrastructure.src.logs.logGroup.db.resource.name,
+				logGroupName:
+					name.stack.infrastructure.src.logs.logGroup.db.resource.name,
 				retention: logs.RetentionDays.ONE_WEEK,
 				removalPolicy: cdk.RemovalPolicy.DESTROY,
 			},
@@ -90,7 +113,8 @@ export class Infrastructure extends cdk.Stack {
 			this,
 			name.stack.infrastructure.src.logs.logGroup.api.resource.id,
 			{
-				logGroupName: name.stack.infrastructure.src.logs.logGroup.api.resource.name,
+				logGroupName:
+					name.stack.infrastructure.src.logs.logGroup.api.resource.name,
 				retention: logs.RetentionDays.ONE_WEEK,
 				removalPolicy: cdk.RemovalPolicy.DESTROY,
 			},
@@ -100,7 +124,8 @@ export class Infrastructure extends cdk.Stack {
 			this,
 			name.stack.infrastructure.src.logs.logGroup.web.resource.id,
 			{
-				logGroupName: name.stack.infrastructure.src.logs.logGroup.web.resource.name,
+				logGroupName:
+					name.stack.infrastructure.src.logs.logGroup.web.resource.name,
 				retention: logs.RetentionDays.ONE_WEEK,
 				removalPolicy: cdk.RemovalPolicy.DESTROY,
 			},
@@ -173,44 +198,54 @@ export class Infrastructure extends cdk.Stack {
 			},
 		);
 
-		const containerDb = xivCraftsmanshipAppTask.addContainer(`${tags.environment}-${tags.service}-db-container`, {
-		  image: ecs.ContainerImage.fromEcrRepository(ecrDb),
-		  cpu: 124,
-		  memoryLimitMiB: 124,
-		  environment: {
-		    POSTGRES_USER: 'example',
-		    POSTGRES_PASSWORD: 'example',
-		    POSTGRES_DB: 'example',
-		  },
-		  portMappings: [{
-		    containerPort: 5432,
-		  }],
-		  logging: ecs.LogDriver.awsLogs({
-		    logGroup: logDb,
-		    streamPrefix: `${tags.environment}-${tags.service}-db`,
-		  }),
-		})
+		const containerDb = xivCraftsmanshipAppTask.addContainer(
+			`${tags.environment}-${tags.service}-db-container`,
+			{
+				image: ecs.ContainerImage.fromEcrRepository(ecrDb),
+				cpu: 124,
+				memoryLimitMiB: 124,
+				environment: {
+					POSTGRES_USER: "example",
+					POSTGRES_PASSWORD: "example",
+					POSTGRES_DB: "example",
+				},
+				portMappings: [
+					{
+						containerPort: 5432,
+					},
+				],
+				logging: ecs.LogDriver.awsLogs({
+					logGroup: logDb,
+					streamPrefix: `${tags.environment}-${tags.service}-db`,
+				}),
+			},
+		);
 
-		const containerApi = xivCraftsmanshipAppTask.addContainer(`${tags.environment}-${tags.service}-api-container`, {
-		  image: ecs.ContainerImage.fromEcrRepository(ecrApi),
-		  cpu: 256,
-		  memoryLimitMiB: 256,
-		  environment: {
-		    ENV: tags.environment,
-		    PORT: "8080",
-		    POSTGRE_SQL_HOST: "localhost",
-		    POSTGRE_SQL_USERNAME: "example",
-		    POSTGRE_SQL_PASSWORD: "example",
-		    POSTGRE_SQL_DB: "example",
-		  },
-		  portMappings: [{
-		    containerPort: 8080,
-		  }],
-		  logging: ecs.LogDriver.awsLogs({
-		    logGroup: logApi,
-		    streamPrefix: `${tags.environment}-${tags.service}-api`,
-		  }),
-		})
+		const containerApi = xivCraftsmanshipAppTask.addContainer(
+			`${tags.environment}-${tags.service}-api-container`,
+			{
+				image: ecs.ContainerImage.fromEcrRepository(ecrApi),
+				cpu: 256,
+				memoryLimitMiB: 256,
+				environment: {
+					ENV: tags.environment,
+					PORT: "8080",
+					POSTGRE_SQL_HOST: "localhost",
+					POSTGRE_SQL_USERNAME: "example",
+					POSTGRE_SQL_PASSWORD: "example",
+					POSTGRE_SQL_DB: "example",
+				},
+				portMappings: [
+					{
+						containerPort: 8080,
+					},
+				],
+				logging: ecs.LogDriver.awsLogs({
+					logGroup: logApi,
+					streamPrefix: `${tags.environment}-${tags.service}-api`,
+				}),
+			},
+		);
 
 		const containerWeb = xivCraftsmanshipAppTask.addContainer(
 			`${tags.environment}-${tags.service}-web-container`,
@@ -230,7 +265,6 @@ export class Infrastructure extends cdk.Stack {
 				}),
 			},
 		);
-
 
 		const xivCraftsmanshipAppService = new ecs.FargateService(
 			this,
