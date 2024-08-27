@@ -2,8 +2,6 @@ import { set } from "../../util/resource";
 import { resource as ecr } from "./ecr";
 import { resource as githubActions } from "./github-actions";
 import { resource as infrastructure } from "./infrastructure";
-import { resource as ecsTaskApp } from "./ecs-task-app";
-import { resource as ecsServiceApp } from "./ecr-service-app";
 
 export interface Namespace {
 	env: string;
@@ -28,8 +26,6 @@ export const namespace = (args: Namespace) => {
 			ecr: { src: ecr(make) },
 			githubActions: { src: githubActions(make) },
 			infrastructure: { src: infrastructure(make) },
-			ecsTaskApp: { src: ecsTaskApp(make) },
-			ecsServiceApp: { src: ecsServiceApp(make) },
 		},
 		ids: make.ids,
 		names: make.names,

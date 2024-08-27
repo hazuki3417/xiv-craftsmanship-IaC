@@ -5,9 +5,6 @@ export const resource = (make: Set) => {
 		ec2: {
 			vpc: {
 				resource: make.resource({ id: "Ec2VpcApp", name: "app" }),
-				cfn: {
-					vpcId: make.cfn({ id: "Ec2VpcAppId" }),
-				},
 				gateway: {
 					ecr: {
 						resource: make.resource({ id: "VpcGatewayS3", name: "S3" }),
@@ -33,17 +30,41 @@ export const resource = (make: Set) => {
 			},
 			sg: {
 				resource: make.resource({ id: "Ec2SecurityGroupApp", name: "app" }),
-				cfn: {
-					securityGroupId: make.cfn({ id: "Ec2SecurityGroupId" }),
-				},
 			},
 		},
 		ecs: {
 			cluster: {
 				resource: make.resource({ id: "EcsClusterApp", name: "app" }),
-				cfn: {
-					arn: make.cfn({ id: "EcsClusterAppArn" }),
-					name: make.cfn({ id: "EcsClusterAppName" }),
+			},
+			task: {
+				iam: {
+					role: {
+						resource: make.resource({
+							id: "EcsTaskRoleApp",
+							name: "ecs-task-role-app",
+						}),
+					},
+				},
+				define: {
+					app: {
+						resource: make.resource({
+							id: "EcsTaskDefinitionApp",
+							name: "app",
+						}),
+					},
+				},
+			},
+		},
+		logs: {
+			logGroup: {
+				db: {
+					resource: make.resource({ id: "CloudWatchLogGroupDb", name: "db" }),
+				},
+				api: {
+					resource: make.resource({ id: "CloudWatchLogGroupApi", name: "api" }),
+				},
+				web: {
+					resource: make.resource({ id: "CloudWatchLogGroupWeb", name: "web" }),
 				},
 			},
 		},
