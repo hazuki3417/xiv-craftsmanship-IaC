@@ -31,7 +31,7 @@ export const resource = (make: Set) => {
 			sg: {
 				resource: make.resource({ id: "Ec2SecurityGroupApp", name: "app" }),
 				cfn: {
-					securityGroupId: make.cfn({ id: "Ec2SecurityGroupApp" }),
+					securityGroupId: make.cfn({ id: "Ec2SecurityGroupId" }),
 				},
 			},
 		},
