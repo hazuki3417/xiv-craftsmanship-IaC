@@ -177,5 +177,15 @@ export class EcsTaskApp extends cdk.Stack {
 					name.stack.ecsTaskApp.src.ecs.task.define.app.cfn.arn.exportName,
 			},
 		);
+
+		new cdk.CfnOutput(
+			this,
+			name.stack.ecsTaskApp.src.ecs.task.iam.role.cfn.arn.exportId,
+			{
+				value: taskExecutionRole.roleArn,
+				exportName:
+					name.stack.ecsTaskApp.src.ecs.task.iam.role.cfn.arn.exportName,
+			},
+		);
 	}
 }

@@ -23,6 +23,9 @@ export const resource = (make: Set) => {
 							id: "EcsTaskRoleApp",
 							name: "ecs-task-role-app",
 						}),
+						cfn : {
+							arn: make.cfn({ id: "EcsTaskRoleAppArn" }),
+						}
 					},
 				},
 				define: {
