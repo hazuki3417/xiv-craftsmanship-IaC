@@ -8,6 +8,7 @@
 		"build": "tsc",
 		"watch": "tsc -w",
 		"test": "jest",
+		"test:namespace": "npm run test -- ./test/namespace.test.ts",
 		"cdk": "cdk",
 		"cdk:prod": "ENVIRONMENT=production cdk",
 		"cdk:stag": "ENVIRONMENT=staging cdk",
