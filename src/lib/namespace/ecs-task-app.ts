@@ -19,12 +19,18 @@ export const resource = (make: Set) => {
 			task: {
 				iam: {
 					role: {
-						resource: make.resource({ id: "EcsTaskRoleApp", name: "ecs-task-role-app" }),
+						resource: make.resource({
+							id: "EcsTaskRoleApp",
+							name: "ecs-task-role-app",
+						}),
 					},
 				},
 				define: {
 					app: {
-						resource: make.resource({ id: "EcsTaskDefinitionApp", name: "app" }),
+						resource: make.resource({
+							id: "EcsTaskDefinitionApp",
+							name: "app",
+						}),
 						cfn: {
 							arn: make.cfn({ id: "EcsTaskDefinitionAppArn" }),
 						},

@@ -18,23 +18,35 @@ export class EcsTaskApp extends cdk.Stack {
 		// /***************************************************************************
 		//  * cloud watch logs
 		//  **************************************************************************/
-		const logDb = new logs.LogGroup(this, name.stack.ecsTaskApp.src.logs.logGroup.db.resource.id, {
-			logGroupName: name.stack.ecsTaskApp.src.logs.logGroup.db.resource.name,
-			retention: logs.RetentionDays.ONE_WEEK,
-			removalPolicy: cdk.RemovalPolicy.DESTROY,
-		});
+		const logDb = new logs.LogGroup(
+			this,
+			name.stack.ecsTaskApp.src.logs.logGroup.db.resource.id,
+			{
+				logGroupName: name.stack.ecsTaskApp.src.logs.logGroup.db.resource.name,
+				retention: logs.RetentionDays.ONE_WEEK,
+				removalPolicy: cdk.RemovalPolicy.DESTROY,
+			},
+		);
 
-		const logApi = new logs.LogGroup(this, name.stack.ecsTaskApp.src.logs.logGroup.api.resource.id, {
-			logGroupName: name.stack.ecsTaskApp.src.logs.logGroup.api.resource.name,
-			retention: logs.RetentionDays.ONE_WEEK,
-			removalPolicy: cdk.RemovalPolicy.DESTROY,
-		});
+		const logApi = new logs.LogGroup(
+			this,
+			name.stack.ecsTaskApp.src.logs.logGroup.api.resource.id,
+			{
+				logGroupName: name.stack.ecsTaskApp.src.logs.logGroup.api.resource.name,
+				retention: logs.RetentionDays.ONE_WEEK,
+				removalPolicy: cdk.RemovalPolicy.DESTROY,
+			},
+		);
 
-		const logWeb = new logs.LogGroup(this, name.stack.ecsTaskApp.src.logs.logGroup.web.resource.id, {
-			logGroupName: name.stack.ecsTaskApp.src.logs.logGroup.web.resource.name,
-			retention: logs.RetentionDays.ONE_WEEK,
-			removalPolicy: cdk.RemovalPolicy.DESTROY,
-		});
+		const logWeb = new logs.LogGroup(
+			this,
+			name.stack.ecsTaskApp.src.logs.logGroup.web.resource.id,
+			{
+				logGroupName: name.stack.ecsTaskApp.src.logs.logGroup.web.resource.name,
+				retention: logs.RetentionDays.ONE_WEEK,
+				removalPolicy: cdk.RemovalPolicy.DESTROY,
+			},
+		);
 
 		const taskExecutionRole = new iam.Role(
 			this,
@@ -60,7 +72,9 @@ export class EcsTaskApp extends cdk.Stack {
 			this,
 			name.stack.ecr.src.ecr.db.cfn.arn.importId,
 			{
-				repositoryArn: cdk.Fn.importValue(name.stack.ecr.src.ecr.db.cfn.arn.exportName),
+				repositoryArn: cdk.Fn.importValue(
+					name.stack.ecr.src.ecr.db.cfn.arn.exportName,
+				),
 				repositoryName: name.stack.ecr.src.ecr.db.resource.name,
 			},
 		);
@@ -68,7 +82,9 @@ export class EcsTaskApp extends cdk.Stack {
 			this,
 			name.stack.ecr.src.ecr.api.cfn.arn.importId,
 			{
-				repositoryArn: cdk.Fn.importValue(name.stack.ecr.src.ecr.api.cfn.arn.exportName),
+				repositoryArn: cdk.Fn.importValue(
+					name.stack.ecr.src.ecr.api.cfn.arn.exportName,
+				),
 				repositoryName: name.stack.ecr.src.ecr.api.resource.name,
 			},
 		);
@@ -76,7 +92,9 @@ export class EcsTaskApp extends cdk.Stack {
 			this,
 			name.stack.ecr.src.ecr.web.cfn.arn.importId,
 			{
-				repositoryArn: cdk.Fn.importValue(name.stack.ecr.src.ecr.web.cfn.arn.exportName),
+				repositoryArn: cdk.Fn.importValue(
+					name.stack.ecr.src.ecr.web.cfn.arn.exportName,
+				),
 				repositoryName: name.stack.ecr.src.ecr.web.resource.name,
 			},
 		);
@@ -150,9 +168,14 @@ export class EcsTaskApp extends cdk.Stack {
 			},
 		);
 
-		new cdk.CfnOutput(this, name.stack.ecsTaskApp.src.ecs.task.define.app.cfn.arn.exportId, {
-			value: xivCraftsmanshipAppTask.taskDefinitionArn,
-			exportName: name.stack.ecsTaskApp.src.ecs.task.define.app.cfn.arn.exportName,
-		});
+		new cdk.CfnOutput(
+			this,
+			name.stack.ecsTaskApp.src.ecs.task.define.app.cfn.arn.exportId,
+			{
+				value: xivCraftsmanshipAppTask.taskDefinitionArn,
+				exportName:
+					name.stack.ecsTaskApp.src.ecs.task.define.app.cfn.arn.exportName,
+			},
+		);
 	}
 }
