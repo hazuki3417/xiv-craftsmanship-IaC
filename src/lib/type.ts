@@ -1,4 +1,4 @@
 export type XivCraftsmanshipTagType = {
-  service: string;
-  environment: string;
-}
+	service: string;
+	environment: string;
+};
