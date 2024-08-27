@@ -173,44 +173,44 @@ export class Infrastructure extends cdk.Stack {
 			},
 		);
 
-		// const containerDb = xivCraftsmanshipAppTask.addContainer(`${tags.environment}-${tags.service}-db-container`, {
-		//   image: ecs.ContainerImage.fromEcrRepository(ecrDb),
-		//   cpu: 124,
-		//   memoryLimitMiB: 124,
-		//   environment: {
-		//     POSTGRES_USER: 'example',
-		//     POSTGRES_PASSWORD: 'example',
-		//     POSTGRES_DB: 'example',
-		//   },
-		//   // portMappings: [{
-		//   //   containerPort: 5432,
-		//   // }],
-		//   logging: ecs.LogDriver.awsLogs({
-		//     logGroup: logDb,
-		//     streamPrefix: `${tags.environment}-${tags.service}-db`,
-		//   }),
-		// })
+		const containerDb = xivCraftsmanshipAppTask.addContainer(`${tags.environment}-${tags.service}-db-container`, {
+		  image: ecs.ContainerImage.fromEcrRepository(ecrDb),
+		  cpu: 124,
+		  memoryLimitMiB: 124,
+		  environment: {
+		    POSTGRES_USER: 'example',
+		    POSTGRES_PASSWORD: 'example',
+		    POSTGRES_DB: 'example',
+		  },
+		  portMappings: [{
+		    containerPort: 5432,
+		  }],
+		  logging: ecs.LogDriver.awsLogs({
+		    logGroup: logDb,
+		    streamPrefix: `${tags.environment}-${tags.service}-db`,
+		  }),
+		})
 
-		// const containerApi = xivCraftsmanshipAppTask.addContainer(`${tags.environment}-${tags.service}-api-container`, {
-		//   image: ecs.ContainerImage.fromEcrRepository(ecrApi),
-		//   cpu: 256,
-		//   memoryLimitMiB: 256,
-		//   environment: {
-		//     ENV: tags.environment,
-		//     PORT: "8080",
-		//     POSTGRE_SQL_HOST: "localhost",
-		//     POSTGRE_SQL_USERNAME: "example",
-		//     POSTGRE_SQL_PASSWORD: "example",
-		//     POSTGRE_SQL_DB: "example",
-		//   },
-		//   // portMappings: [{
-		//   //   containerPort: 8080,
-		//   // }],
-		//   logging: ecs.LogDriver.awsLogs({
-		//     logGroup: logApi,
-		//     streamPrefix: `${tags.environment}-${tags.service}-api`,
-		//   }),
-		// })
+		const containerApi = xivCraftsmanshipAppTask.addContainer(`${tags.environment}-${tags.service}-api-container`, {
+		  image: ecs.ContainerImage.fromEcrRepository(ecrApi),
+		  cpu: 256,
+		  memoryLimitMiB: 256,
+		  environment: {
+		    ENV: tags.environment,
+		    PORT: "8080",
+		    POSTGRE_SQL_HOST: "localhost",
+		    POSTGRE_SQL_USERNAME: "example",
+		    POSTGRE_SQL_PASSWORD: "example",
+		    POSTGRE_SQL_DB: "example",
+		  },
+		  portMappings: [{
+		    containerPort: 8080,
+		  }],
+		  logging: ecs.LogDriver.awsLogs({
+		    logGroup: logApi,
+		    streamPrefix: `${tags.environment}-${tags.service}-api`,
+		  }),
+		})
 
 		const containerWeb = xivCraftsmanshipAppTask.addContainer(
 			`${tags.environment}-${tags.service}-web-container`,
@@ -232,24 +232,23 @@ export class Infrastructure extends cdk.Stack {
 		);
 
 
-		// const xivCraftsmanshipAppService = new ecs.FargateService(
-		// 	this,
-		// 	`${tags.environment}-${tags.service}-app-service`,
-		// 	{
-		// 		cluster: cluster,
-		// 		taskDefinition: task as ecs.FargateTaskDefinition,
-		// 		securityGroups: [sgApp],
-		// 		vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
-		// 		desiredCount: 1,
-		// 		deploymentController: {
-		// 			type: ecs.DeploymentControllerType.ECS,
-		// 		},
-		// 		circuitBreaker: {
-		// 			rollback: false,
-		// 			enable: true,
-		// 		},
-		// 	},
-		// );
-
+		const xivCraftsmanshipAppService = new ecs.FargateService(
+			this,
+			`${tags.environment}-${tags.service}-app-service`,
+			{
+				cluster: cluster,
+				taskDefinition: xivCraftsmanshipAppTask,
+				securityGroups: [sgApp],
+				vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+				desiredCount: 1,
+				deploymentController: {
+					type: ecs.DeploymentControllerType.ECS,
+				},
+				circuitBreaker: {
+					rollback: true,
+					enable: true,
+				},
+			},
+		);
 	}
 }
