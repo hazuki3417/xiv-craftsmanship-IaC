@@ -1,6 +1,6 @@
 import { Construct } from "constructs";
-import { namespace } from "./../namespace";
-import { XivCraftsmanshipTagType } from "../type";
+import { namespace } from "./namespace";
+import { XivCraftsmanshipTagType } from "./type";
 import * as cdk from "aws-cdk-lib";
 import * as iam from "aws-cdk-lib/aws-iam";
 

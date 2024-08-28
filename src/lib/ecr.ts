@@ -1,8 +1,8 @@
 import { Construct } from "constructs";
 import * as cdk from "aws-cdk-lib";
 import * as ecr from "aws-cdk-lib/aws-ecr";
-import { XivCraftsmanshipTagType } from "./../type";
-import { namespace } from "./../namespace";
+import { XivCraftsmanshipTagType } from "./type";
+import { namespace } from "./namespace";
 
 export class Ecr extends cdk.Stack {
 	public readonly db: ecr.Repository;
