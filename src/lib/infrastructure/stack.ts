@@ -52,7 +52,7 @@ export class Infrastructure extends cdk.Stack {
 			name.stack.infrastructure.src.ec2.vpc.gateway.ecr.resource.id,
 			{
 				service: ec2.GatewayVpcEndpointAwsService.S3,
-				subnets: [{ subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS }],
+				subnets: [{ subnetType: ec2.SubnetType.PUBLIC }],
 			},
 		);
 
@@ -60,7 +60,7 @@ export class Infrastructure extends cdk.Stack {
 			name.stack.infrastructure.src.ec2.vpc.interface.ecr.resource.id,
 			{
 				service: ec2.InterfaceVpcEndpointAwsService.ECR,
-				subnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+				subnets: { subnetType: ec2.SubnetType.PUBLIC },
 			},
 		);
 
@@ -68,7 +68,7 @@ export class Infrastructure extends cdk.Stack {
 			name.stack.infrastructure.src.ec2.vpc.interface.ecrDocker.resource.id,
 			{
 				service: ec2.InterfaceVpcEndpointAwsService.ECR_DOCKER,
-				subnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+				subnets: { subnetType: ec2.SubnetType.PUBLIC },
 			},
 		);
 
@@ -77,7 +77,7 @@ export class Infrastructure extends cdk.Stack {
 				.id,
 			{
 				service: ec2.InterfaceVpcEndpointAwsService.CLOUDWATCH_LOGS,
-				subnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+				subnets: { subnetType: ec2.SubnetType.PUBLIC },
 			},
 		);
 
@@ -273,7 +273,7 @@ export class Infrastructure extends cdk.Stack {
 				cluster: cluster,
 				taskDefinition: xivCraftsmanshipAppTask,
 				securityGroups: [sgApp],
-				vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+				vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
 				desiredCount: 1,
 				deploymentController: {
 					type: ecs.DeploymentControllerType.ECS,
