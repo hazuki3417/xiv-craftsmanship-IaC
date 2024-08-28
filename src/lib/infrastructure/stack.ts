@@ -43,7 +43,7 @@ export class Infrastructure extends cdk.Stack {
 			"Allow HTTP traffic from anywhere",
 		);
 		sgApp.addIngressRule(
-			ec2.Peer.ipv4("0.0.0.0/0"),
+			ec2.Peer.anyIpv4(),
 			ec2.Port.tcp(443),
 			"Allow HTTPS traffic from anywhere",
 		);
@@ -275,6 +275,7 @@ export class Infrastructure extends cdk.Stack {
 				securityGroups: [sgApp],
 				vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
 				desiredCount: 1,
+				assignPublicIp: true,
 				deploymentController: {
 					type: ecs.DeploymentControllerType.ECS,
 				},
