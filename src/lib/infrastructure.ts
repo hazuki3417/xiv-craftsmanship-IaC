@@ -1,12 +1,12 @@
 import { Construct } from "constructs";
+import { namespace } from "./namespace";
 import { XivCraftsmanshipTagType } from "./type";
 import * as cdk from "aws-cdk-lib";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
-import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as ecr from "aws-cdk-lib/aws-ecr";
-import * as logs from "aws-cdk-lib/aws-logs";
+import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as iam from "aws-cdk-lib/aws-iam";
-import { namespace } from "./namespace";
+import * as logs from "aws-cdk-lib/aws-logs";
 
 export class Infrastructure extends cdk.Stack {
 	constructor(scope: Construct, id: string, props: cdk.StackProps) {

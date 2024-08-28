@@ -1,7 +1,7 @@
-import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { namespace } from "./namespace";
 import { XivCraftsmanshipTagType } from "./type";
+import * as cdk from 'aws-cdk-lib';
 
 export class ResourceGroup extends cdk.Stack {
   public readonly resourceGroup: cdk.aws_resourcegroups.CfnGroup;
