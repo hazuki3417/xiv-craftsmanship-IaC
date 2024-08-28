@@ -1,16 +1,18 @@
 import { Construct } from "constructs";
 import { namespace } from "./namespace";
-import { XivCraftsmanshipTagType } from "./type";
+import { XivCraftsmanshipProps } from "./type";
 import * as cdk from "aws-cdk-lib";
 import * as iam from "aws-cdk-lib/aws-iam";
 
+interface GitHubActionsProps extends XivCraftsmanshipProps {
+	// NOTE: 必要に応じて依存するリソースの型を定義
+}
+
 export class GitHubActions extends cdk.Stack {
-	constructor(scope: Construct, id: string, props: cdk.StackProps) {
+	constructor(scope: Construct, id: string, props: GitHubActionsProps) {
 		super(scope, id, props);
-
-		const tags = props.tags as XivCraftsmanshipTagType;
-
-		const name = namespace({ env: tags.environment, service: tags.service })
+		const env = props.env;
+		const name = namespace({ env: env.stage, service: env.service })
 			.stack.githubActions.src;
 		/**
 		 * GitHub Actions 用のリソース

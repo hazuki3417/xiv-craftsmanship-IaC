@@ -2,28 +2,26 @@
 import "source-map-support/register";
 import * as cdk from "aws-cdk-lib";
 import { stage } from "../util/stage";
-import { XivCraftsmanshipTagType } from "../lib/type";
+import { XivCraftsmanshipProps } from "../lib/type";
 import { Ecr } from "../lib/ecr";
 import { GitHubActions } from "../lib/github-actions";
 import { Infrastructure } from "../lib/infrastructure";
 
 stage.env.verify();
 
-const tags = {
-	service: "xiv-craftsmanship",
-	environment: stage.env.get(),
-} as XivCraftsmanshipTagType;
+const props: XivCraftsmanshipProps = {
+	env: {
+		service: "xiv-craftsmanship",
+		stage: stage.env.get(),
+	},
+	tags: {
+		Service: "xiv-craftsmanship",
+		Stage: stage.env.get(),
+	}
+}
 
 const app = new cdk.App();
 
-new GitHubActions(app, "XivCraftsmanship-GitHubActions", {
-	tags,
-});
-
-new Ecr(app, "XivCraftsmanship-Ecr", {
-	tags,
-});
-
-new Infrastructure(app, "XivCraftsmanship-Infrastructure", {
-	tags,
-});
+new GitHubActions(app, "XivCraftsmanship-GitHubActions", props);
+new Ecr(app, "XivCraftsmanship-Ecr", props);
+new Infrastructure(app, "XivCraftsmanship-Infrastructure", props);

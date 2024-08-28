@@ -1,6 +1,6 @@
 import { Construct } from "constructs";
 import { namespace } from "./namespace";
-import { XivCraftsmanshipTagType } from "./type";
+import { XivCraftsmanshipProps } from "./type";
 import * as cdk from "aws-cdk-lib";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as ecr from "aws-cdk-lib/aws-ecr";
@@ -8,11 +8,16 @@ import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as logs from "aws-cdk-lib/aws-logs";
 
+interface InfrastructureProps extends XivCraftsmanshipProps {
+	// NOTE: 必要に応じて依存するリソースの型を定義
+}
 export class Infrastructure extends cdk.Stack {
-	constructor(scope: Construct, id: string, props: cdk.StackProps) {
+	constructor(scope: Construct, id: string, props: InfrastructureProps) {
 		super(scope, id, props);
-		const tags = props.tags as XivCraftsmanshipTagType;
-		const name = namespace({ env: tags.environment, service: tags.service });
+		const env = props.env;
+		const name = namespace({ env: env.stage, service: env.service });
+
+		props.env
 
 		/***************************************************************************
 		 * network
@@ -199,7 +204,7 @@ export class Infrastructure extends cdk.Stack {
 		);
 
 		const containerDb = xivCraftsmanshipAppTask.addContainer(
-			`${tags.environment}-${tags.service}-db-container`,
+			`${env.stage}-${env.service}-db-container`,
 			{
 				image: ecs.ContainerImage.fromEcrRepository(ecrDb),
 				cpu: 124,
@@ -216,19 +221,19 @@ export class Infrastructure extends cdk.Stack {
 				],
 				logging: ecs.LogDriver.awsLogs({
 					logGroup: logDb,
-					streamPrefix: `${tags.environment}-${tags.service}-db`,
+					streamPrefix: `${env.stage}-${env.service}-db`,
 				}),
 			},
 		);
 
 		const containerApi = xivCraftsmanshipAppTask.addContainer(
-			`${tags.environment}-${tags.service}-api-container`,
+			`${env.stage}-${env.service}-api-container`,
 			{
 				image: ecs.ContainerImage.fromEcrRepository(ecrApi),
 				cpu: 256,
 				memoryLimitMiB: 256,
 				environment: {
-					ENV: tags.environment,
+					ENV: env.stage,
 					PORT: "8080",
 					POSTGRE_SQL_HOST: "localhost",
 					POSTGRE_SQL_USERNAME: "example",
@@ -242,13 +247,13 @@ export class Infrastructure extends cdk.Stack {
 				],
 				logging: ecs.LogDriver.awsLogs({
 					logGroup: logApi,
-					streamPrefix: `${tags.environment}-${tags.service}-api`,
+					streamPrefix: `${env.stage}-${env.service}-api`,
 				}),
 			},
 		);
 
 		const containerWeb = xivCraftsmanshipAppTask.addContainer(
-			`${tags.environment}-${tags.service}-web-container`,
+			`${env.stage}-${env.service}-web-container`,
 			{
 				image: ecs.ContainerImage.fromEcrRepository(ecrWeb),
 				cpu: 256,
@@ -261,14 +266,14 @@ export class Infrastructure extends cdk.Stack {
 				],
 				logging: ecs.LogDriver.awsLogs({
 					logGroup: logWeb,
-					streamPrefix: `${tags.environment}-${tags.service}-web`,
+					streamPrefix: `${env.stage}-${env.service}-web`,
 				}),
 			},
 		);
 
 		const xivCraftsmanshipAppService = new ecs.FargateService(
 			this,
-			`${tags.environment}-${tags.service}-app-service`,
+			`${env.stage}-${env.service}-app-service`,
 			{
 				cluster: cluster,
 				taskDefinition: xivCraftsmanshipAppTask,

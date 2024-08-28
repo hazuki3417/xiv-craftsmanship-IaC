@@ -1,20 +1,21 @@
 import { Construct } from "constructs";
 import { namespace } from "./namespace";
-import { XivCraftsmanshipTagType } from "./type";
+import { XivCraftsmanshipProps } from "./type";
 import * as cdk from "aws-cdk-lib";
 import * as ecr from "aws-cdk-lib/aws-ecr";
 
+interface EcrProps extends XivCraftsmanshipProps {
+	// NOTE: 必要に応じて依存するリソースの型を定義
+}
 export class Ecr extends cdk.Stack {
 	public readonly db: ecr.Repository;
 	public readonly api: ecr.Repository;
 	public readonly web: ecr.Repository;
 
-	constructor(scope: Construct, id: string, props: cdk.StackProps) {
+	constructor(scope: Construct, id: string, props: EcrProps) {
 		super(scope, id, props);
-
-		const tags = props.tags as XivCraftsmanshipTagType;
-
-		const name = namespace({ env: tags.environment, service: tags.service })
+		const env = props.env;
+		const name = namespace({ env: env.stage, service: env.service })
 			.stack.ecr.src;
 
 		this.db = new ecr.Repository(this, name.ecr.db.resource.id, {
