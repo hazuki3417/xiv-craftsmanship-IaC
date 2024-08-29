@@ -68,5 +68,31 @@ export const resource = (make: Set) => {
 				},
 			},
 		},
+		elb: {
+			loadBalancer: {
+				resource: make.resource({ id: "ElbLoadBalancerApp", name: "app" }),
+				cfn: {
+					dns: make.cfn({ id: "ElbLoadBalancerAppDns" }),
+				},
+			},
+			listener: {
+				web: {
+					resource: make.resource({ id: "ElbListenerWeb", name: "web" }),
+				},
+			},
+			targetGroup: {
+				web: {
+					resource: make.resource({ id: "ElbTargetGroupWeb", name: "web" }),
+				},
+			},
+			listenerTargetGroup: {
+				web: {
+					resource: make.resource({
+						id: "ElbListenerTargetGroupWeb",
+						name: "web",
+					}),
+				},
+			},
+		},
 	};
 };

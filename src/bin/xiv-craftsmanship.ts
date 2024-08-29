@@ -17,8 +17,8 @@ const props: XivCraftsmanshipProps = {
 	tags: {
 		Service: "xiv-craftsmanship",
 		Stage: stage.env.get(),
-	}
-}
+	},
+};
 
 const app = new cdk.App();
 

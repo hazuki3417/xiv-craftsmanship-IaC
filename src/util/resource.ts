@@ -106,7 +106,9 @@ export const set = (args: SetParams): Set => {
 		const { id, name } = args;
 
 		const strId: string = casename.pascal(`${stage}-${service}-${id}`);
-		const strName: string = name ? casename.kebab(`${stage}-${service}-${name}`) : casename.kebab(`${stage}-${service}`);;
+		const strName: string = name
+			? casename.kebab(`${stage}-${service}-${name}`)
+			: casename.kebab(`${stage}-${service}`);
 
 		stackId.push(strId);
 		stackName.push(strName);

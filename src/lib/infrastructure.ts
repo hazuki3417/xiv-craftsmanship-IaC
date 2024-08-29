@@ -5,9 +5,9 @@ import * as cdk from "aws-cdk-lib";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as ecr from "aws-cdk-lib/aws-ecr";
 import * as ecs from "aws-cdk-lib/aws-ecs";
+import * as elb from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as logs from "aws-cdk-lib/aws-logs";
-
 interface InfrastructureProps extends XivCraftsmanshipProps {
 	// NOTE: 必要に応じて依存するリソースの型を定義
 }
@@ -17,7 +17,7 @@ export class Infrastructure extends cdk.Stack {
 		const env = props.env;
 		const name = namespace({ stage: env.stage, service: env.service });
 
-		props.env
+		props.env;
 
 		/***************************************************************************
 		 * network
@@ -85,6 +85,28 @@ export class Infrastructure extends cdk.Stack {
 				subnets: { subnetType: ec2.SubnetType.PUBLIC },
 			},
 		);
+
+		// /***************************************************************************
+		//  * load balancer
+		//  **************************************************************************/
+		// const alb = new elb.ApplicationLoadBalancer(
+		// 	this,
+		// 	name.stack.infrastructure.src.elb.loadBalancer.resource.id,
+		// 	{
+		// 		vpc: vpc,
+		// 		internetFacing: true,
+		// 		securityGroup: sgApp,
+		// 	},
+		// );
+
+		// // ALBのリスナーを作成
+		// const listener = alb.addListener(
+		// 	name.stack.infrastructure.src.elb.listener.web.resource.id,
+		// 	{
+		// 		port: 80,
+		// 		open: true,
+		// 	},
+		// );
 
 		/***************************************************************************
 		 * ecs cluster
@@ -290,5 +312,34 @@ export class Infrastructure extends cdk.Stack {
 				},
 			},
 		);
+
+		// // ターゲットグループの作成
+		// const targetGroup = new elb.ApplicationTargetGroup(
+		// 	this,
+		// 	name.stack.infrastructure.src.elb.targetGroup.web.resource.id,
+		// 	{
+		// 		vpc: vpc,
+		// 		port: 80,
+		// 		targets: [xivCraftsmanshipAppService],
+		// 	},
+		// );
+
+		// // リスナーにターゲットグループを追加
+		// listener.addTargetGroups(
+		// 	name.stack.infrastructure.src.elb.listenerTargetGroup.web.resource.id,
+		// 	{
+		// 		targetGroups: [targetGroup],
+		// 	},
+		// );
+
+		// // 出力
+		// new cdk.CfnOutput(
+		// 	this,
+		// 	name.stack.infrastructure.src.elb.loadBalancer.cfn.dns.importId,
+		// 	{
+		// 		value: alb.loadBalancerDnsName,
+		// 		description: "The DNS name of the ALB",
+		// 	},
+		// );
 	}
 }
