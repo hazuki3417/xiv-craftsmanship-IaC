@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 import "source-map-support/register";
-import * as cdk from "aws-cdk-lib";
-import { stage } from "../util/stage";
-import { XivCraftsmanshipProps } from "../lib/type";
 import { Ecr } from "../lib/ecr";
 import { GitHubActions } from "../lib/github-actions";
 import { Infrastructure } from "../lib/infrastructure";
+import { stage } from "../util/stage";
+import { XivCraftsmanshipProps } from "../lib/type";
+import * as cdk from "aws-cdk-lib";
 
 stage.env.verify();
 
