@@ -15,7 +15,7 @@ export class Infrastructure extends cdk.Stack {
 	constructor(scope: Construct, id: string, props: InfrastructureProps) {
 		super(scope, id, props);
 		const env = props.env;
-		const name = namespace({ env: env.stage, service: env.service });
+		const name = namespace({ stage: env.stage, service: env.service });
 
 		props.env
 

@@ -23,13 +23,13 @@ const casename = {
 };
 
 export interface SetParams {
-	env: string;
+	stage: string;
 	service: string;
 }
 
 export interface ResourceParams {
 	id: string;
-	name: string;
+	name?: string;
 }
 
 export interface CfnParams {
@@ -45,6 +45,7 @@ export interface Set {
 	};
 	ids: Stack;
 	names: Stack;
+	cfnExportNames: Stack;
 }
 
 export interface Stack {
@@ -89,24 +90,26 @@ const stack = (): Stack => {
 };
 
 export const set = (args: SetParams): Set => {
-	const { env, service } = args;
+	const { stage, service } = args;
 
 	const stackId = stack();
+	const stackName = stack();
 	const stackExportName = stack();
 
 	/**
 	 * リソース名を生成します
 	 * @param id リソースID
 	 * @param name リソース名
-	 * @returns id: {Env}{Service}{Id}, name: {env}-{service}-{name}
+	 * @returns id: {Stage}{Service}{Id}, name: {stage}-{service}-{name}
 	 */
 	const resource = (args: ResourceParams) => {
 		const { id, name } = args;
 
-		const strId: string = casename.pascal(`${env}-${service}-${id}`);
-		const strName: string = casename.kebab(`${env}-${service}-${name}`);
+		const strId: string = casename.pascal(`${stage}-${service}-${id}`);
+		const strName: string = name ? casename.kebab(`${stage}-${service}-${name}`) : casename.kebab(`${stage}-${service}`);;
 
 		stackId.push(strId);
+		stackName.push(strName);
 
 		return {
 			id: strId,
@@ -117,13 +120,13 @@ export const set = (args: SetParams): Set => {
 	/**
 	 *
 	 * @param id リソースID
-	 * @returns exportId: {Exp}{Env}{Service}{Id}, importId: {Imp}{Env}{Service}{Id}, exportName: {name}-{env}-{service}-{id}
+	 * @returns exportId: {Exp}{Stage}{Service}{Id}, importId: {Imp}{Stage}{Service}{Id}, exportName: {name}-{stage}-{service}-{id}
 	 */
 	const cfn = (args: CfnParams) => {
 		const { id } = args;
-		const strExportId = casename.pascal(`exp-${env}-${service}-${id}`);
-		const strImportId = casename.pascal(`imp-${env}-${service}-${id}`);
-		const strExportName = casename.kebab(`${env}-${service}-${id}`);
+		const strExportId = casename.pascal(`exp-${stage}-${service}-${id}`);
+		const strImportId = casename.pascal(`imp-${stage}-${service}-${id}`);
+		const strExportName = casename.kebab(`${stage}-${service}-${id}`);
 
 		stackId.push(strExportId);
 		stackId.push(strImportId);
@@ -140,7 +143,8 @@ export const set = (args: SetParams): Set => {
 		resource,
 		cfn,
 		ids: stackId,
-		names: stackExportName,
+		names: stackName,
+		cfnExportNames: stackExportName,
 	};
 };
 

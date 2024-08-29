@@ -7,9 +7,10 @@ import { namespace } from "../lib/namespace";
  *       deployなどを行う前に名前を定義し、問題ないかどうか確認した後にdeployするように運用する。
  */
 test("duplacate namespace", () => {
-	const name = namespace({ env: "development", service: "xiv-craftsmanship" });
+	const name = namespace({ stage: "development", service: "xiv-craftsmanship" });
 	console.debug("aws construct ids", name.ids.toArray());
-	console.debug("aws cfn export names", name.names.toArray());
+	console.debug("aws resource names", name.names.toArray());
+	console.debug("aws cfn export names", name.cfnExportNames.toArray());
 	expect(name.ids.isError()).toBe(false);
 	expect(name.names.isError()).toBe(false);
 });

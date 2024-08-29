@@ -15,7 +15,7 @@ export class Ecr extends cdk.Stack {
 	constructor(scope: Construct, id: string, props: EcrProps) {
 		super(scope, id, props);
 		const env = props.env;
-		const name = namespace({ env: env.stage, service: env.service })
+		const name = namespace({ stage: env.stage, service: env.service })
 			.stack.ecr.src;
 
 		this.db = new ecr.Repository(this, name.ecr.db.resource.id, {

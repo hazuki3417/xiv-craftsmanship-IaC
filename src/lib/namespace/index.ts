@@ -4,14 +4,14 @@ import { resource as githubActions } from "./github-actions";
 import { resource as infrastructure } from "./infrastructure";
 
 export interface Namespace {
-	env: string;
+	stage: string;
 	service: string;
 }
 
 export const namespace = (args: Namespace) => {
-	const { env, service } = args;
+	const { stage, service } = args;
 
-	const make = set({ env, service });
+	const make = set({ stage, service });
 
 	/**
 	 * stack.{stackName}.src.{resourceName}
@@ -29,5 +29,6 @@ export const namespace = (args: Namespace) => {
 		},
 		ids: make.ids,
 		names: make.names,
+		cfnExportNames: make.cfnExportNames,
 	};
 };

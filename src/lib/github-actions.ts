@@ -12,7 +12,7 @@ export class GitHubActions extends cdk.Stack {
 	constructor(scope: Construct, id: string, props: GitHubActionsProps) {
 		super(scope, id, props);
 		const env = props.env;
-		const name = namespace({ env: env.stage, service: env.service })
+		const name = namespace({ stage: env.stage, service: env.service })
 			.stack.githubActions.src;
 		/**
 		 * GitHub Actions 用のリソース
