@@ -293,25 +293,25 @@ export class Infrastructure extends cdk.Stack {
 			},
 		);
 
-		const xivCraftsmanshipAppService = new ecs.FargateService(
-			this,
-			`${env.stage}-${env.service}-app-service`,
-			{
-				cluster: cluster,
-				taskDefinition: xivCraftsmanshipAppTask,
-				securityGroups: [sgApp],
-				vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
-				desiredCount: 1,
-				assignPublicIp: true,
-				deploymentController: {
-					type: ecs.DeploymentControllerType.ECS,
-				},
-				circuitBreaker: {
-					rollback: true,
-					enable: true,
-				},
-			},
-		);
+		// const xivCraftsmanshipAppService = new ecs.FargateService(
+		// 	this,
+		// 	`${env.stage}-${env.service}-app-service`,
+		// 	{
+		// 		cluster: cluster,
+		// 		taskDefinition: xivCraftsmanshipAppTask,
+		// 		securityGroups: [sgApp],
+		// 		vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
+		// 		desiredCount: 1,
+		// 		assignPublicIp: true,
+		// 		deploymentController: {
+		// 			type: ecs.DeploymentControllerType.ECS,
+		// 		},
+		// 		circuitBreaker: {
+		// 			rollback: true,
+		// 			enable: true,
+		// 		},
+		// 	},
+		// );
 
 		// // ターゲットグループの作成
 		// const targetGroup = new elb.ApplicationTargetGroup(
