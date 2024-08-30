@@ -86,27 +86,27 @@ export class Infrastructure extends cdk.Stack {
 			},
 		);
 
-		// /***************************************************************************
-		//  * load balancer
-		//  **************************************************************************/
-		// const alb = new elb.ApplicationLoadBalancer(
-		// 	this,
-		// 	name.stack.infrastructure.src.elb.loadBalancer.resource.id,
-		// 	{
-		// 		vpc: vpc,
-		// 		internetFacing: true,
-		// 		securityGroup: sgApp,
-		// 	},
-		// );
+		/***************************************************************************
+		 * load balancer
+		 **************************************************************************/
+		const alb = new elb.ApplicationLoadBalancer(
+			this,
+			name.stack.infrastructure.src.elb.loadBalancer.resource.id,
+			{
+				vpc: vpc,
+				internetFacing: true,
+				securityGroup: sgApp,
+			},
+		);
 
-		// // ALBのリスナーを作成
-		// const listener = alb.addListener(
-		// 	name.stack.infrastructure.src.elb.listener.web.resource.id,
-		// 	{
-		// 		port: 80,
-		// 		open: true,
-		// 	},
-		// );
+		new cdk.CfnOutput(
+			this,
+			name.stack.infrastructure.src.elb.loadBalancer.cfn.dns.importId,
+			{
+				value: alb.loadBalancerDnsName,
+				description: "The DNS name of the ALB",
+			},
+		);
 
 		/***************************************************************************
 		 * ecs cluster
@@ -313,6 +313,15 @@ export class Infrastructure extends cdk.Stack {
 		// 	},
 		// );
 
+		// ALBのリスナーを作成
+		// const listener = alb.addListener(
+		// 	name.stack.infrastructure.src.elb.listener.web.resource.id,
+		// 	{
+		// 		port: 80,
+		// 		open: true,
+		// 	},
+		// );
+
 		// // ターゲットグループの作成
 		// const targetGroup = new elb.ApplicationTargetGroup(
 		// 	this,
@@ -332,14 +341,5 @@ export class Infrastructure extends cdk.Stack {
 		// 	},
 		// );
 
-		// // 出力
-		// new cdk.CfnOutput(
-		// 	this,
-		// 	name.stack.infrastructure.src.elb.loadBalancer.cfn.dns.importId,
-		// 	{
-		// 		value: alb.loadBalancerDnsName,
-		// 		description: "The DNS name of the ALB",
-		// 	},
-		// );
 	}
 }
