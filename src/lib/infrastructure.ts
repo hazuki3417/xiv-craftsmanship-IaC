@@ -245,6 +245,13 @@ export class Infrastructure extends cdk.Stack {
 					logGroup: logDb,
 					streamPrefix: `${env.stage}-${env.service}-db`,
 				}),
+				healthCheck: {
+					command: ["CMD-SHELL", "pg_isready -U postgres || exit 1"],
+					retries: 5,
+					timeout: cdk.Duration.seconds(5),
+					interval: cdk.Duration.seconds(10),
+					startPeriod: cdk.Duration.seconds(30),
+				},
 			},
 		);
 
@@ -271,6 +278,16 @@ export class Infrastructure extends cdk.Stack {
 					logGroup: logApi,
 					streamPrefix: `${env.stage}-${env.service}-api`,
 				}),
+				healthCheck: {
+					command: [
+						"CMD-SHELL",
+						"wget --quiet --spider http://localhost:8080/health || exit 1",
+					],
+					retries: 3,
+					timeout: cdk.Duration.seconds(10),
+					interval: cdk.Duration.seconds(30),
+					startPeriod: cdk.Duration.seconds(30),
+				},
 			},
 		);
 
@@ -290,39 +307,39 @@ export class Infrastructure extends cdk.Stack {
 					logGroup: logWeb,
 					streamPrefix: `${env.stage}-${env.service}-web`,
 				}),
+				healthCheck: {
+					command: [
+						"CMD-SHELL",
+						"wget --quiet --spider http://localhost:3000 || exit 1",
+					],
+					retries: 3,
+					timeout: cdk.Duration.seconds(10),
+					interval: cdk.Duration.seconds(30),
+					startPeriod: cdk.Duration.seconds(30),
+				},
 			},
 		);
 
-		// const xivCraftsmanshipAppService = new ecs.FargateService(
-		// 	this,
-		// 	`${env.stage}-${env.service}-app-service`,
-		// 	{
-		// 		cluster: cluster,
-		// 		taskDefinition: xivCraftsmanshipAppTask,
-		// 		securityGroups: [sgApp],
-		// 		vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
-		// 		desiredCount: 1,
-		// 		assignPublicIp: true,
-		// 		deploymentController: {
-		// 			type: ecs.DeploymentControllerType.ECS,
-		// 		},
-		// 		circuitBreaker: {
-		// 			rollback: true,
-		// 			enable: true,
-		// 		},
-		// 	},
-		// );
+		const xivCraftsmanshipAppService = new ecs.FargateService(
+			this,
+			`${env.stage}-${env.service}-app-service`,
+			{
+				cluster: cluster,
+				taskDefinition: xivCraftsmanshipAppTask,
+				securityGroups: [sgApp],
+				vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
+				desiredCount: 1,
+				assignPublicIp: true,
+				deploymentController: {
+					type: ecs.DeploymentControllerType.ECS,
+				},
+				circuitBreaker: {
+					rollback: true,
+					enable: true,
+				},
+			},
+		);
 
-		// ALBのリスナーを作成
-		// const listener = alb.addListener(
-		// 	name.stack.infrastructure.src.elb.listener.web.resource.id,
-		// 	{
-		// 		port: 80,
-		// 		open: true,
-		// 	},
-		// );
-
-		// // ターゲットグループの作成
 		// const targetGroup = new elb.ApplicationTargetGroup(
 		// 	this,
 		// 	name.stack.infrastructure.src.elb.targetGroup.web.resource.id,
@@ -333,13 +350,13 @@ export class Infrastructure extends cdk.Stack {
 		// 	},
 		// );
 
-		// // リスナーにターゲットグループを追加
-		// listener.addTargetGroups(
-		// 	name.stack.infrastructure.src.elb.listenerTargetGroup.web.resource.id,
+		// const listener = alb.addListener(
+		// 	name.stack.infrastructure.src.elb.listener.web.resource.id,
 		// 	{
-		// 		targetGroups: [targetGroup],
+		// 		port: 80,
+		// 		open: true,
+		// 		defaultTargetGroups: [targetGroup],
 		// 	},
 		// );
-
 	}
 }
