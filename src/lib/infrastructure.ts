@@ -87,28 +87,6 @@ export class Infrastructure extends cdk.Stack {
 		);
 
 		/***************************************************************************
-		 * load balancer
-		 **************************************************************************/
-		const alb = new elb.ApplicationLoadBalancer(
-			this,
-			name.stack.infrastructure.src.elb.loadBalancer.resource.id,
-			{
-				vpc: vpc,
-				internetFacing: true,
-				securityGroup: sgApp,
-			},
-		);
-
-		new cdk.CfnOutput(
-			this,
-			name.stack.infrastructure.src.elb.loadBalancer.cfn.dns.importId,
-			{
-				value: alb.loadBalancerDnsName,
-				description: "The DNS name of the ALB",
-			},
-		);
-
-		/***************************************************************************
 		 * ecs cluster
 		 **************************************************************************/
 
@@ -225,72 +203,6 @@ export class Infrastructure extends cdk.Stack {
 			},
 		);
 
-		const containerDb = xivCraftsmanshipAppTask.addContainer(
-			`${env.stage}-${env.service}-db-container`,
-			{
-				image: ecs.ContainerImage.fromEcrRepository(ecrDb),
-				cpu: 124,
-				memoryLimitMiB: 124,
-				environment: {
-					POSTGRES_USER: "example",
-					POSTGRES_PASSWORD: "example",
-					POSTGRES_DB: "example",
-				},
-				portMappings: [
-					{
-						containerPort: 5432,
-					},
-				],
-				logging: ecs.LogDriver.awsLogs({
-					logGroup: logDb,
-					streamPrefix: `${env.stage}-${env.service}-db`,
-				}),
-				healthCheck: {
-					command: ["CMD-SHELL", "pg_isready -U postgres || exit 1"],
-					retries: 5,
-					timeout: cdk.Duration.seconds(5),
-					interval: cdk.Duration.seconds(10),
-					startPeriod: cdk.Duration.seconds(30),
-				},
-			},
-		);
-
-		const containerApi = xivCraftsmanshipAppTask.addContainer(
-			`${env.stage}-${env.service}-api-container`,
-			{
-				image: ecs.ContainerImage.fromEcrRepository(ecrApi),
-				cpu: 256,
-				memoryLimitMiB: 256,
-				environment: {
-					ENV: env.stage,
-					PORT: "8080",
-					POSTGRE_SQL_HOST: "localhost",
-					POSTGRE_SQL_USERNAME: "example",
-					POSTGRE_SQL_PASSWORD: "example",
-					POSTGRE_SQL_DB: "example",
-				},
-				portMappings: [
-					{
-						containerPort: 8080,
-					},
-				],
-				logging: ecs.LogDriver.awsLogs({
-					logGroup: logApi,
-					streamPrefix: `${env.stage}-${env.service}-api`,
-				}),
-				healthCheck: {
-					command: [
-						"CMD-SHELL",
-						"wget --quiet --spider http://localhost:8080/health || exit 1",
-					],
-					retries: 3,
-					timeout: cdk.Duration.seconds(10),
-					interval: cdk.Duration.seconds(30),
-					startPeriod: cdk.Duration.seconds(30),
-				},
-			},
-		);
-
 		const containerWeb = xivCraftsmanshipAppTask.addContainer(
 			`${env.stage}-${env.service}-web-container`,
 			{
@@ -320,6 +232,64 @@ export class Infrastructure extends cdk.Stack {
 			},
 		);
 
+		const containerApi = xivCraftsmanshipAppTask.addContainer(
+			`${env.stage}-${env.service}-api-container`,
+			{
+				image: ecs.ContainerImage.fromEcrRepository(ecrApi),
+				cpu: 256,
+				memoryLimitMiB: 256,
+				environment: {
+					ENV: env.stage,
+					PORT: "8080",
+					POSTGRE_SQL_HOST: "localhost",
+					POSTGRE_SQL_USERNAME: "example",
+					POSTGRE_SQL_PASSWORD: "example",
+					POSTGRE_SQL_DB: "example",
+				},
+				portMappings: [],
+				logging: ecs.LogDriver.awsLogs({
+					logGroup: logApi,
+					streamPrefix: `${env.stage}-${env.service}-api`,
+				}),
+				healthCheck: {
+					command: [
+						"CMD-SHELL",
+						"wget --quiet --spider http://localhost:8080/health || exit 1",
+					],
+					retries: 3,
+					timeout: cdk.Duration.seconds(10),
+					interval: cdk.Duration.seconds(30),
+					startPeriod: cdk.Duration.seconds(30),
+				},
+			},
+		);
+
+		const containerDb = xivCraftsmanshipAppTask.addContainer(
+			`${env.stage}-${env.service}-db-container`,
+			{
+				image: ecs.ContainerImage.fromEcrRepository(ecrDb),
+				cpu: 124,
+				memoryLimitMiB: 124,
+				environment: {
+					POSTGRES_USER: "example",
+					POSTGRES_PASSWORD: "example",
+					POSTGRES_DB: "example",
+				},
+				portMappings: [],
+				logging: ecs.LogDriver.awsLogs({
+					logGroup: logDb,
+					streamPrefix: `${env.stage}-${env.service}-db`,
+				}),
+				healthCheck: {
+					command: ["CMD-SHELL", "pg_isready -U postgres || exit 1"],
+					retries: 5,
+					timeout: cdk.Duration.seconds(5),
+					interval: cdk.Duration.seconds(10),
+					startPeriod: cdk.Duration.seconds(30),
+				},
+			},
+		);
+
 		const xivCraftsmanshipAppService = new ecs.FargateService(
 			this,
 			`${env.stage}-${env.service}-app-service`,
@@ -340,23 +310,52 @@ export class Infrastructure extends cdk.Stack {
 			},
 		);
 
-		// const targetGroup = new elb.ApplicationTargetGroup(
-		// 	this,
-		// 	name.stack.infrastructure.src.elb.targetGroup.web.resource.id,
-		// 	{
-		// 		vpc: vpc,
-		// 		port: 80,
-		// 		targets: [xivCraftsmanshipAppService],
-		// 	},
-		// );
+		/***************************************************************************
+		 * load balancer
+		 **************************************************************************/
 
-		// const listener = alb.addListener(
-		// 	name.stack.infrastructure.src.elb.listener.web.resource.id,
-		// 	{
-		// 		port: 80,
-		// 		open: true,
-		// 		defaultTargetGroups: [targetGroup],
-		// 	},
-		// );
+		const alb = new elb.ApplicationLoadBalancer(
+			this,
+			name.stack.infrastructure.src.elb.loadBalancer.resource.id,
+			{
+				vpc: vpc,
+				internetFacing: true,
+				securityGroup: sgApp,
+			},
+		);
+
+		new cdk.CfnOutput(
+			this,
+			name.stack.infrastructure.src.elb.loadBalancer.cfn.dns.importId,
+			{
+				value: alb.loadBalancerDnsName,
+				description: "The DNS name of the ALB",
+			},
+		);
+
+		const listener = alb.addListener(
+			name.stack.infrastructure.src.elb.listener.web.resource.id,
+			{
+				port: 80,
+				open: true,
+			},
+		);
+
+		listener.addTargets(
+			name.stack.infrastructure.src.elb.targetGroup.web.resource.id,
+			{
+				port: 3000,
+				protocol: elb.ApplicationProtocol.HTTP,
+				targets: [xivCraftsmanshipAppService],
+				healthCheck: {
+					enabled: true,
+					path: "/",
+					interval: cdk.Duration.seconds(30),
+					timeout: cdk.Duration.seconds(5),
+					unhealthyThresholdCount: 2,
+					healthyThresholdCount: 2,
+				},
+			},
+		);
 	}
 }
