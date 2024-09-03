@@ -71,9 +71,6 @@ export const resource = (make: Set) => {
 		elb: {
 			loadBalancer: {
 				resource: make.resource({ id: "ElbLoadBalancerApp", name: "app" }),
-				cfn: {
-					dns: make.cfn({ id: "ElbLoadBalancerAppDns" }),
-				},
 			},
 			listener: {
 				web: {
@@ -92,6 +89,24 @@ export const resource = (make: Set) => {
 						name: "web",
 					}),
 				},
+			},
+		},
+		route53: {
+			zone: {
+				resource: make.resource({ id: "Route53ZoneApp" }),
+			},
+			record: {
+				web: {
+					resource: make.resource({ id: "Route53RecordWeb" }),
+					cfn: {
+						dns: make.cfn({ id: "Route53RecordWebDns" }),
+					},
+				},
+			},
+		},
+		certificatemanager: {
+			certificate: {
+				resource: make.resource({ id: "CertificateManagerCertificateApp" }),
 			},
 		},
 	};

@@ -2,12 +2,16 @@ import { Construct } from "constructs";
 import { namespace } from "./namespace";
 import { XivCraftsmanshipProps } from "./type";
 import * as cdk from "aws-cdk-lib";
+import * as certificatemanager from "aws-cdk-lib/aws-certificatemanager";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as ecr from "aws-cdk-lib/aws-ecr";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as elb from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as logs from "aws-cdk-lib/aws-logs";
+import * as route53 from "aws-cdk-lib/aws-route53";
+import * as targets from "aws-cdk-lib/aws-route53-targets";
+
 interface InfrastructureProps extends XivCraftsmanshipProps {
 	// NOTE: 必要に応じて依存するリソースの型を定義
 }
@@ -311,6 +315,26 @@ export class Infrastructure extends cdk.Stack {
 		);
 
 		/***************************************************************************
+		 * domain
+		 **************************************************************************/
+		const zone = route53.HostedZone.fromLookup(
+			this,
+			name.stack.infrastructure.src.route53.zone.resource.id,
+			{
+				domainName: env.host,
+			},
+		);
+
+		const certificate = new certificatemanager.Certificate(
+			this,
+			name.stack.infrastructure.src.certificatemanager.certificate.resource.id,
+			{
+				domainName: env.host,
+				validation: certificatemanager.CertificateValidation.fromDns(zone),
+			},
+		);
+
+		/***************************************************************************
 		 * load balancer
 		 **************************************************************************/
 
@@ -324,22 +348,21 @@ export class Infrastructure extends cdk.Stack {
 			},
 		);
 
-		new cdk.CfnOutput(
-			this,
-			name.stack.infrastructure.src.elb.loadBalancer.cfn.dns.importId,
-			{
-				value: alb.loadBalancerDnsName,
-				description: "The DNS name of the ALB",
-			},
-		);
-
 		const listener = alb.addListener(
 			name.stack.infrastructure.src.elb.listener.web.resource.id,
 			{
-				port: 80,
+				port: 443,
+				certificates: [certificate],
 				open: true,
 			},
 		);
+
+		alb.addRedirect({
+			sourcePort: 80,
+			sourceProtocol: elb.ApplicationProtocol.HTTP,
+			targetPort: 443,
+			targetProtocol: elb.ApplicationProtocol.HTTPS,
+		});
 
 		listener.addTargets(
 			name.stack.infrastructure.src.elb.targetGroup.web.resource.id,
@@ -355,6 +378,28 @@ export class Infrastructure extends cdk.Stack {
 					unhealthyThresholdCount: 2,
 					healthyThresholdCount: 2,
 				},
+			},
+		);
+
+		const record = new route53.ARecord(
+			this,
+			name.stack.infrastructure.src.route53.record.web.resource.id,
+			{
+				zone: zone,
+				target: route53.RecordTarget.fromAlias(
+					new targets.LoadBalancerTarget(alb),
+				),
+				// NOTE: ルートドメインの場合は空、サブドメインの場合はサブドメインだけを指定
+				recordName: "",
+			},
+		);
+
+		new cdk.CfnOutput(
+			this,
+			name.stack.infrastructure.src.route53.record.web.cfn.dns.exportId,
+			{
+				value: record.domainName,
+				description: "The domain name for the ALB",
 			},
 		);
 	}

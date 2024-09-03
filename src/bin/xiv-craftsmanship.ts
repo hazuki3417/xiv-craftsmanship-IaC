@@ -11,8 +11,11 @@ stage.env.verify();
 
 const props: XivCraftsmanshipProps = {
 	env: {
+		account: process.env.CDK_DEFAULT_ACCOUNT,
+		region: process.env.CDK_DEFAULT_REGION,
 		service: "xiv-craftsmanship",
 		stage: stage.env.get(),
+		host: "xiv-craftsmanship.com",
 	},
 	tags: {
 		Service: "xiv-craftsmanship",
