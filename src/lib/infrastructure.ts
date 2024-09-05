@@ -248,7 +248,7 @@ export class Infrastructure extends cdk.Stack {
 				environment: {
 					STAGE: env.stage,
 					PORT: "8080",
-					POSTGRE_SQL_HOST: "localhost",
+					POSTGRE_SQL_HOST: "localhost:5555",
 					POSTGRE_SQL_USERNAME: "example",
 					POSTGRE_SQL_PASSWORD: "example",
 					POSTGRE_SQL_DB: "example",
