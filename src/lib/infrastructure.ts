@@ -213,7 +213,10 @@ export class Infrastructure extends cdk.Stack {
 				image: ecs.ContainerImage.fromEcrRepository(ecrWeb),
 				cpu: 256,
 				memoryLimitMiB: 512,
-				environment: {},
+				environment: {
+					API_URL: "http://localhost:8080", // NOTE: xiv-craftsmanship-apiのURL
+					HOST_URL: "https://xiv-craftsmanship.com",
+				},
 				portMappings: [
 					{
 						containerPort: 3000,
@@ -243,7 +246,7 @@ export class Infrastructure extends cdk.Stack {
 				cpu: 256,
 				memoryLimitMiB: 256,
 				environment: {
-					ENV: env.stage,
+					STAGE: env.stage,
 					PORT: "8080",
 					POSTGRE_SQL_HOST: "localhost",
 					POSTGRE_SQL_USERNAME: "example",
