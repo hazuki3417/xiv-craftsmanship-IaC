@@ -236,6 +236,7 @@ export class Infrastructure extends cdk.Stack {
 					interval: cdk.Duration.seconds(30),
 					startPeriod: cdk.Duration.seconds(30),
 				},
+				essential: true,
 			},
 		);
 
@@ -268,6 +269,7 @@ export class Infrastructure extends cdk.Stack {
 					interval: cdk.Duration.seconds(30),
 					startPeriod: cdk.Duration.seconds(30),
 				},
+				essential: false,
 			},
 		);
 
@@ -294,8 +296,21 @@ export class Infrastructure extends cdk.Stack {
 					interval: cdk.Duration.seconds(10),
 					startPeriod: cdk.Duration.seconds(30),
 				},
+				essential: false,
 			},
 		);
+
+		// タスク内のコンテナ依存を定義
+		containerWeb.addContainerDependencies({
+			container: containerApi,
+			condition: ecs.ContainerDependencyCondition.COMPLETE,
+		});
+
+		containerApi.addContainerDependencies({
+			container: containerDb,
+			condition: ecs.ContainerDependencyCondition.COMPLETE,
+		});
+
 
 		const xivCraftsmanshipAppService = new ecs.FargateService(
 			this,
@@ -316,17 +331,6 @@ export class Infrastructure extends cdk.Stack {
 				},
 			},
 		);
-
-		// タスク内のコンテナ依存を定義
-		containerApi.addContainerDependencies({
-			container: containerDb,
-			condition: ecs.ContainerDependencyCondition.COMPLETE,
-		});
-
-		containerWeb.addContainerDependencies({
-			container: containerApi,
-			condition: ecs.ContainerDependencyCondition.COMPLETE,
-		});
 
 		/***************************************************************************
 		 * domain
