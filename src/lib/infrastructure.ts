@@ -317,6 +317,17 @@ export class Infrastructure extends cdk.Stack {
 			},
 		);
 
+		// タスク内のコンテナ依存を定義
+		containerApi.addContainerDependencies({
+			container: containerDb,
+			condition: ecs.ContainerDependencyCondition.COMPLETE,
+		});
+
+		containerWeb.addContainerDependencies({
+			container: containerApi,
+			condition: ecs.ContainerDependencyCondition.COMPLETE,
+		});
+
 		/***************************************************************************
 		 * domain
 		 **************************************************************************/
