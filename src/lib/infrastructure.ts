@@ -249,7 +249,7 @@ export class Infrastructure extends cdk.Stack {
 				environment: {
 					STAGE: env.stage,
 					PORT: "8080",
-					POSTGRE_SQL_HOST: "localhost:5555",
+					POSTGRE_SQL_HOST: "localhost",
 					POSTGRE_SQL_USERNAME: "example",
 					POSTGRE_SQL_PASSWORD: "example",
 					POSTGRE_SQL_DB: "example",
@@ -269,7 +269,7 @@ export class Infrastructure extends cdk.Stack {
 					interval: cdk.Duration.seconds(30),
 					startPeriod: cdk.Duration.seconds(30),
 				},
-				essential: false,
+				// essential: false,
 			},
 		);
 
@@ -296,20 +296,20 @@ export class Infrastructure extends cdk.Stack {
 					interval: cdk.Duration.seconds(10),
 					startPeriod: cdk.Duration.seconds(30),
 				},
-				essential: false,
+				// essential: false,
 			},
 		);
 
 		// タスク内のコンテナ依存を定義
-		containerWeb.addContainerDependencies({
-			container: containerApi,
-			condition: ecs.ContainerDependencyCondition.COMPLETE,
-		});
+		// containerWeb.addContainerDependencies({
+		// 	container: containerApi,
+		// 	condition: ecs.ContainerDependencyCondition.HEALTHY,
+		// });
 
-		containerApi.addContainerDependencies({
-			container: containerDb,
-			condition: ecs.ContainerDependencyCondition.COMPLETE,
-		});
+		// containerApi.addContainerDependencies({
+		// 	container: containerDb,
+		// 	condition: ecs.ContainerDependencyCondition.HEALTHY,
+		// });
 
 
 		const xivCraftsmanshipAppService = new ecs.FargateService(
