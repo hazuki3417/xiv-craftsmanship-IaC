@@ -20,6 +20,7 @@ export class Infrastructure extends cdk.Stack {
 
 	public readonly sg: {
 		app: ec2.SecurityGroup;
+		dataStore: ec2.SecurityGroup;
 	};
 
 	public readonly logs: {
@@ -50,9 +51,9 @@ export class Infrastructure extends cdk.Stack {
 
 		const sgApp = new ec2.SecurityGroup(
 			this,
-			name.stack.infrastructure.src.ec2.sg.resource.id,
+			name.stack.infrastructure.src.ec2.sg.app.resource.id,
 			{
-				securityGroupName: name.stack.infrastructure.src.ec2.sg.resource.name,
+				securityGroupName: name.stack.infrastructure.src.ec2.sg.app.resource.name,
 				vpc: vpc,
 				allowAllOutbound: true,
 			},
@@ -67,6 +68,22 @@ export class Infrastructure extends cdk.Stack {
 			ec2.Peer.anyIpv4(),
 			ec2.Port.tcp(443),
 			"Allow HTTPS traffic from anywhere",
+		);
+
+		const sgDataStore = new ec2.SecurityGroup(
+			this,
+			name.stack.infrastructure.src.ec2.sg.dataStore.resource.id,
+			{
+				securityGroupName: name.stack.infrastructure.src.ec2.sg.dataStore.resource.name,
+				vpc: vpc,
+				allowAllOutbound: true,
+			},
+		);
+
+		sgApp.addIngressRule(
+			ec2.Peer.anyIpv4(),
+			ec2.Port.tcp(5432),
+			"Allow PostgreSQL traffic from anywhere",
 		);
 
 		vpc.addGatewayEndpoint(
@@ -216,6 +233,7 @@ export class Infrastructure extends cdk.Stack {
 
 		this.sg = {
 			app: sgApp,
+			dataStore: sgDataStore,
 		};
 
 		this.logs = {

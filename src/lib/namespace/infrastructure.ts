@@ -29,7 +29,12 @@ export const resource = (make: Set) => {
 				},
 			},
 			sg: {
-				resource: make.resource({ id: "Ec2SecurityGroupApp", name: "app" }),
+				app: {
+					resource: make.resource({ id: "Ec2SecurityGroupApp", name: "app" }),
+				},
+				dataStore: {
+					resource: make.resource({ id: "Ec2SecurityGroupDataStore", name: "data-store" }),
+				}
 			},
 		},
 		ecs: {
