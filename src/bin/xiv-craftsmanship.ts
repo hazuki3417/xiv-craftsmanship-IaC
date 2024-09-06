@@ -25,6 +25,30 @@ const props: XivCraftsmanshipProps = {
 
 const app = new cdk.App();
 
-new GitHubActions(app, "XivCraftsmanship-GitHubActions", props);
-new Ecr(app, "XivCraftsmanship-Ecr", props);
-new Infrastructure(app, "XivCraftsmanship-Infrastructure", props);
+/*******************************************************************************
+ * stacks
+ ******************************************************************************/
+new GitHubActions(app, "XivCraftsmanship-GitHubActions", {
+	...props,
+});
+
+const ecr = new Ecr(app, "XivCraftsmanship-Ecr", {
+	...props,
+});
+
+const infrastructure = new Infrastructure(
+	app,
+	"XivCraftsmanship-Infrastructure",
+	{
+		...props,
+	},
+);
+
+/*******************************************************************************
+ * dependencies
+ ******************************************************************************/
+
+/*******************************************************************************
+ * Synth
+ ******************************************************************************/
+app.synth();

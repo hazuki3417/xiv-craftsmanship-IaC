@@ -36,24 +36,6 @@ export const resource = (make: Set) => {
 			cluster: {
 				resource: make.resource({ id: "EcsClusterApp", name: "app" }),
 			},
-			task: {
-				iam: {
-					role: {
-						resource: make.resource({
-							id: "EcsTaskRoleApp",
-							name: "ecs-task-role-app",
-						}),
-					},
-				},
-				define: {
-					app: {
-						resource: make.resource({
-							id: "EcsTaskDefinitionApp",
-							name: "app",
-						}),
-					},
-				},
-			},
 		},
 		logs: {
 			logGroup: {
@@ -71,24 +53,6 @@ export const resource = (make: Set) => {
 		elb: {
 			loadBalancer: {
 				resource: make.resource({ id: "ElbLoadBalancerApp", name: "app" }),
-			},
-			listener: {
-				web: {
-					resource: make.resource({ id: "ElbListenerWeb", name: "web" }),
-				},
-			},
-			targetGroup: {
-				web: {
-					resource: make.resource({ id: "ElbTargetGroupWeb", name: "web" }),
-				},
-			},
-			listenerTargetGroup: {
-				web: {
-					resource: make.resource({
-						id: "ElbListenerTargetGroupWeb",
-						name: "web",
-					}),
-				},
 			},
 		},
 		route53: {

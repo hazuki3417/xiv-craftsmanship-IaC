@@ -70,6 +70,10 @@ export class GitHubActions extends cdk.Stack {
 			}),
 		);
 
+		/***************************************************************************
+		 * output block
+		 **************************************************************************/
+
 		new cdk.CfnOutput(this, name.iam.role.cfn.name.exportId, {
 			value: githubActionsEcrDeployRole.roleName,
 			exportName: name.iam.role.cfn.name.exportName,
