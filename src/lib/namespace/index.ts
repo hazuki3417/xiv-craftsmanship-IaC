@@ -2,7 +2,8 @@ import { set } from "../../util/resource";
 import { resource as ecr } from "./ecr";
 import { resource as githubActions } from "./github-actions";
 import { resource as infrastructure } from "./infrastructure";
-import { resource as deploy } from "./deploy";
+import { resource as deployAppService } from "./deploy-app-service";
+import { resource as deployDataStoreService } from "./deploy-data-store-service";
 
 export interface Namespace {
 	stage: string;
@@ -27,7 +28,8 @@ export const namespace = (args: Namespace) => {
 			ecr: { src: ecr(make) },
 			githubActions: { src: githubActions(make) },
 			infrastructure: { src: infrastructure(make) },
-			deploy: { src: deploy(make) },
+			deployAppService: { src: deployAppService(make) },
+			deployDataStoreService: { src: deployDataStoreService(make) },
 		},
 		ids: make.ids,
 		names: make.names,

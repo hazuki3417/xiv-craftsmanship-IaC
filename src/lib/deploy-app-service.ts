@@ -10,7 +10,7 @@ import * as elb from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as logs from "aws-cdk-lib/aws-logs";
 
-interface DeployProps extends XivCraftsmanshipProps {
+interface DeployAppServiceProps extends XivCraftsmanshipProps {
 	ecr: {
 		db: ecr.IRepository;
 		api: ecr.IRepository;
@@ -29,8 +29,8 @@ interface DeployProps extends XivCraftsmanshipProps {
 	};
 	// NOTE: 必要に応じて依存するリソースの型を定義
 }
-export class Deploy extends cdk.Stack {
-	constructor(scope: Construct, id: string, props: DeployProps) {
+export class DeployAppService extends cdk.Stack {
+	constructor(scope: Construct, id: string, props: DeployAppServiceProps) {
 		super(scope, id, props);
 		const env = props.env;
 		const name = namespace({ stage: env.stage, service: env.service });
@@ -43,9 +43,9 @@ export class Deploy extends cdk.Stack {
 
 		const taskExecutionRole = new iam.Role(
 			this,
-			name.stack.deploy.src.ecs.task.iam.role.resource.id,
+			name.stack.deployAppService.src.ecs.task.iam.role.resource.id,
 			{
-				roleName: name.stack.deploy.src.ecs.task.iam.role.resource.name,
+				roleName: name.stack.deployAppService.src.ecs.task.iam.role.resource.name,
 				assumedBy: new iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
 				// managedPolicies: [
 				//   iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AmazonECSTaskExecutionRolePolicy'),
@@ -64,7 +64,7 @@ export class Deploy extends cdk.Stack {
 
 		const xivCraftsmanshipAppTask = new ecs.TaskDefinition(
 			this,
-			name.stack.deploy.src.ecs.task.define.app.resource.id,
+			name.stack.deployAppService.src.ecs.task.define.app.resource.id,
 			{
 				compatibility: ecs.Compatibility.FARGATE,
 				cpu: "1024", // Adjust based on your requirements
@@ -115,7 +115,7 @@ export class Deploy extends cdk.Stack {
 				environment: {
 					STAGE: env.stage,
 					PORT: "8080",
-					POSTGRE_SQL_HOST: "localhost",
+					POSTGRE_SQL_HOST: "127.0.0.1",
 					POSTGRE_SQL_USERNAME: "example",
 					POSTGRE_SQL_PASSWORD: "example",
 					POSTGRE_SQL_DB: "example",
@@ -212,7 +212,7 @@ export class Deploy extends cdk.Stack {
 		 **************************************************************************/
 
 		// const listener = props.alb.addListener(
-		// 	name.stack.deploy.src.elb.listener.web.resource.id,
+		// 	name.stack.deployAppService.src.elb.listener.web.resource.id,
 		// 	{
 		// 		port: 443,
 		// 		certificates: [props.certificate],
@@ -220,7 +220,7 @@ export class Deploy extends cdk.Stack {
 		// 	},
 		// );
 
-		// listener.addTargets(name.stack.deploy.src.elb.targetGroup.web.resource.id, {
+		// listener.addTargets(name.stack.deployAppService.src.elb.targetGroup.web.resource.id, {
 		// 	port: 3000,
 		// 	protocol: elb.ApplicationProtocol.HTTP,
 		// 	targets: [xivCraftsmanshipAppService],

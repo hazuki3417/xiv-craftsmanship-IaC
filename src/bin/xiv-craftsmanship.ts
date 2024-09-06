@@ -3,7 +3,6 @@ import "source-map-support/register";
 import { Ecr } from "../lib/ecr";
 import { GitHubActions } from "../lib/github-actions";
 import { Infrastructure } from "../lib/infrastructure";
-import { Deploy } from "../lib/deploy";
 import { stage } from "../util/stage";
 import { XivCraftsmanshipProps } from "../lib/type";
 import * as cdk from "aws-cdk-lib";
@@ -45,31 +44,10 @@ const infrastructure = new Infrastructure(
 	},
 );
 
-const deploy = new Deploy(app, "XivCraftsmanship-Deploy", {
-	ecr: {
-		db: ecr.db,
-		api: ecr.api,
-		web: ecr.web,
-	},
-	logs: {
-		db: infrastructure.logs.db,
-		api: infrastructure.logs.api,
-		web: infrastructure.logs.web,
-	},
-	alb: infrastructure.alb,
-	cluster: infrastructure.cluster,
-	certificate: infrastructure.certificate,
-	sg: {
-		app: infrastructure.sg.app,
-	},
-	...props,
-});
 
 /*******************************************************************************
  * dependencies
  ******************************************************************************/
-deploy.addDependency(ecr);
-deploy.addDependency(infrastructure);
 
 /*******************************************************************************
  * Synth
