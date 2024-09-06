@@ -14,19 +14,19 @@ interface InfrastructureProps extends XivCraftsmanshipProps {
 	// NOTE: 必要に応じて依存するリソースの型を定義
 }
 export class Infrastructure extends cdk.Stack {
-	public readonly logs: {
-		db: logs.ILogGroup;
-		api: logs.ILogGroup;
-		web: logs.ILogGroup;
-	};
-
 	public readonly cluster: ecs.Cluster;
+	public readonly alb: elb.ApplicationLoadBalancer;
+	public readonly certificate: certificatemanager.ICertificate;
 
 	public readonly sg: {
 		app: ec2.SecurityGroup;
 	};
 
-	public readonly certificate: certificatemanager.ICertificate;
+	public readonly logs: {
+		db: logs.ILogGroup;
+		api: logs.ILogGroup;
+		web: logs.ILogGroup;
+	};
 
 	constructor(scope: Construct, id: string, props: InfrastructureProps) {
 		super(scope, id, props);
@@ -210,19 +210,19 @@ export class Infrastructure extends cdk.Stack {
 		 * output block
 		 **************************************************************************/
 
-		this.logs = {
-			db: logsDb,
-			api: logsApi,
-			web: logsWeb,
-		};
-
 		this.cluster = cluster;
+		this.alb = alb;
+		this.certificate = certificate;
 
 		this.sg = {
 			app: sgApp,
 		};
 
-		this.certificate = certificate;
+		this.logs = {
+			db: logsDb,
+			api: logsApi,
+			web: logsWeb,
+		};
 
 		new cdk.CfnOutput(
 			this,
