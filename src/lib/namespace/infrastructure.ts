@@ -87,6 +87,6 @@ export const resource = (make: Set) => {
 			namespace: {
 				resource: make.resource({ id: "ServiceDiscoveryNamespace" }),
 			},
-		}
+		},
 	};
 };

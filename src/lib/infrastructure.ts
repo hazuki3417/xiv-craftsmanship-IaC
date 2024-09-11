@@ -8,7 +8,7 @@ import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as elb from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as route53 from "aws-cdk-lib/aws-route53";
-import * as servicediscovery from 'aws-cdk-lib/aws-servicediscovery';
+import * as servicediscovery from "aws-cdk-lib/aws-servicediscovery";
 import * as targets from "aws-cdk-lib/aws-route53-targets";
 
 interface InfrastructureProps extends XivCraftsmanshipProps {
@@ -200,9 +200,10 @@ export class Infrastructure extends cdk.Stack {
 			this,
 			name.stack.infrastructure.src.serviceDiscovery.namespace.resource.id,
 			{
-      name: `${env.stage}.${env.service}.local`,
-      vpc: vpc
-    });
+				name: `${env.stage}.${env.service}.local`,
+				vpc: vpc,
+			},
+		);
 
 		/***************************************************************************
 		 * load balancer
