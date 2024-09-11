@@ -7,7 +7,7 @@ import * as ecr from "aws-cdk-lib/aws-ecr";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as logs from "aws-cdk-lib/aws-logs";
-import * as servicediscovery from 'aws-cdk-lib/aws-servicediscovery';
+import * as servicediscovery from "aws-cdk-lib/aws-servicediscovery";
 
 interface DeployDataStoreServiceProps extends XivCraftsmanshipProps {
 	ecr: {
@@ -25,7 +25,11 @@ interface DeployDataStoreServiceProps extends XivCraftsmanshipProps {
 }
 export class DeployDataStoreService extends cdk.Stack {
 	public readonly service: ecs.FargateService;
-	constructor(scope: Construct, id: string, props: DeployDataStoreServiceProps) {
+	constructor(
+		scope: Construct,
+		id: string,
+		props: DeployDataStoreServiceProps,
+	) {
 		super(scope, id, props);
 		const env = props.env;
 		const name = namespace({ stage: env.stage, service: env.service });
@@ -40,7 +44,8 @@ export class DeployDataStoreService extends cdk.Stack {
 			this,
 			name.stack.deployDataStoreService.src.ecs.task.iam.role.resource.id,
 			{
-				roleName: name.stack.deployDataStoreService.src.ecs.task.iam.role.resource.name,
+				roleName:
+					name.stack.deployDataStoreService.src.ecs.task.iam.role.resource.name,
 				assumedBy: new iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
 				// managedPolicies: [
 				//   iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AmazonECSTaskExecutionRolePolicy'),
@@ -117,7 +122,7 @@ export class DeployDataStoreService extends cdk.Stack {
 					enable: true,
 				},
 				cloudMapOptions: {
-					name: 'data-store',
+					name: "data-store",
 					dnsRecordType: servicediscovery.DnsRecordType.A,
 					cloudMapNamespace: props.namespace,
 				},

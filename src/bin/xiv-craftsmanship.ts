@@ -7,6 +7,7 @@ import { DeployDataStoreService } from "../lib/deploy-data-store-service";
 import { stage } from "../util/stage";
 import { XivCraftsmanshipProps } from "../lib/type";
 import * as cdk from "aws-cdk-lib";
+import { DeployAppService } from "../lib/deploy-app-service";
 
 stage.env.verify();
 
@@ -56,10 +57,38 @@ const deployDataStoreService = new DeployDataStoreService(
 			db: infrastructure.logs.db,
 		},
 		cluster: infrastructure.cluster,
-		sg: {
-			dataStore: infrastructure.sg.app,
-		},
 		namespace: infrastructure.namespace,
+		sg: {
+			dataStore: infrastructure.sg.dataStore,
+		},
+		...props,
+	},
+);
+
+const deployAppService = new DeployAppService(
+	app,
+	"XivCraftsmanship-DeployAppService",
+	{
+		ecs: {
+			service: {
+				dataStore: deployDataStoreService.service,
+			},
+		},
+		ecr: {
+			web: ecr.web,
+			api: ecr.api,
+		},
+		logs: {
+			web: infrastructure.logs.web,
+			api: infrastructure.logs.api,
+		},
+		cluster: infrastructure.cluster,
+		alb: infrastructure.alb,
+		certificate: infrastructure.certificate,
+		namespace: infrastructure.namespace,
+		sg: {
+			app: infrastructure.sg.app,
+		},
 		...props,
 	},
 );

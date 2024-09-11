@@ -9,15 +9,19 @@ import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as elb from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as logs from "aws-cdk-lib/aws-logs";
+import * as servicediscovery from "aws-cdk-lib/aws-servicediscovery";
 
 interface DeployAppServiceProps extends XivCraftsmanshipProps {
+	ecs: {
+		service: {
+			dataStore: ecs.FargateService;
+		};
+	};
 	ecr: {
-		db: ecr.IRepository;
 		api: ecr.IRepository;
 		web: ecr.IRepository;
 	};
 	logs: {
-		db: logs.ILogGroup;
 		api: logs.ILogGroup;
 		web: logs.ILogGroup;
 	};
@@ -27,6 +31,7 @@ interface DeployAppServiceProps extends XivCraftsmanshipProps {
 	sg: {
 		app: ec2.SecurityGroup;
 	};
+	namespace: servicediscovery.PrivateDnsNamespace;
 	// NOTE: 必要に応じて依存するリソースの型を定義
 }
 export class DeployAppService extends cdk.Stack {
@@ -45,7 +50,8 @@ export class DeployAppService extends cdk.Stack {
 			this,
 			name.stack.deployAppService.src.ecs.task.iam.role.resource.id,
 			{
-				roleName: name.stack.deployAppService.src.ecs.task.iam.role.resource.name,
+				roleName:
+					name.stack.deployAppService.src.ecs.task.iam.role.resource.name,
 				assumedBy: new iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
 				// managedPolicies: [
 				//   iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AmazonECSTaskExecutionRolePolicy'),
@@ -62,7 +68,7 @@ export class DeployAppService extends cdk.Stack {
 			}),
 		);
 
-		const xivCraftsmanshipAppTask = new ecs.TaskDefinition(
+		const task = new ecs.TaskDefinition(
 			this,
 			name.stack.deployAppService.src.ecs.task.define.app.resource.id,
 			{
@@ -73,7 +79,7 @@ export class DeployAppService extends cdk.Stack {
 			},
 		);
 
-		// const containerWeb = xivCraftsmanshipAppTask.addContainer(
+		// const containerWeb = task.addContainer(
 		// 	`${env.stage}-${env.service}-web-container`,
 		// 	{
 		// 		image: ecs.ContainerImage.fromEcrRepository(props.ecr.web),
@@ -106,7 +112,7 @@ export class DeployAppService extends cdk.Stack {
 		// 	},
 		// );
 
-		const containerApi = xivCraftsmanshipAppTask.addContainer(
+		const containerApi = task.addContainer(
 			`${env.stage}-${env.service}-api-container`,
 			{
 				image: ecs.ContainerImage.fromEcrRepository(props.ecr.api),
@@ -115,7 +121,7 @@ export class DeployAppService extends cdk.Stack {
 				environment: {
 					STAGE: env.stage,
 					PORT: "8080",
-					POSTGRE_SQL_HOST: "127.0.0.1",
+					POSTGRE_SQL_HOST: `data-store.${props.namespace.namespaceName}`,
 					POSTGRE_SQL_USERNAME: "example",
 					POSTGRE_SQL_PASSWORD: "example",
 					POSTGRE_SQL_DB: "example",
@@ -143,55 +149,18 @@ export class DeployAppService extends cdk.Stack {
 			},
 		);
 
-		const containerDb = xivCraftsmanshipAppTask.addContainer(
-			`${env.stage}-${env.service}-db-container`,
-			{
-				image: ecs.ContainerImage.fromEcrRepository(props.ecr.db),
-				cpu: 124,
-				memoryLimitMiB: 124,
-				environment: {
-					POSTGRES_USER: "example",
-					POSTGRES_PASSWORD: "example",
-					POSTGRES_DB: "example",
-				},
-				portMappings: [
-					{
-						containerPort: 5432,
-					},
-				],
-				logging: ecs.LogDriver.awsLogs({
-					logGroup: props.logs.db,
-					streamPrefix: `${env.stage}-${env.service}-db`,
-				}),
-				healthCheck: {
-					// NOTE: environment.POSTGRES_USERのユーザーを使ってpg_isreadyを実行する
-					command: ["CMD-SHELL", "pg_isready -U example || exit 1"],
-					retries: 5,
-					timeout: cdk.Duration.seconds(5),
-					interval: cdk.Duration.seconds(10),
-					startPeriod: cdk.Duration.seconds(30),
-				},
-				essential: false,
-			},
-		);
-
 		// タスク内のコンテナ依存を定義
 		// containerWeb.addContainerDependencies({
 		// 	container: containerApi,
 		// 	condition: ecs.ContainerDependencyCondition.HEALTHY,
 		// });
 
-		containerApi.addContainerDependencies({
-			container: containerDb,
-			condition: ecs.ContainerDependencyCondition.HEALTHY,
-		});
-
-		const xivCraftsmanshipAppService = new ecs.FargateService(
+		const service = new ecs.FargateService(
 			this,
 			`${env.stage}-${env.service}-app-service`,
 			{
 				cluster: props.cluster,
-				taskDefinition: xivCraftsmanshipAppTask,
+				taskDefinition: task,
 				securityGroups: [props.sg.app],
 				vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
 				desiredCount: 1,
@@ -205,6 +174,11 @@ export class DeployAppService extends cdk.Stack {
 				},
 				enableExecuteCommand: true,
 			},
+		);
+
+		props.ecs.service.dataStore.connections.allowFrom(
+			service,
+			ec2.Port.tcp(5432),
 		);
 
 		/***************************************************************************
