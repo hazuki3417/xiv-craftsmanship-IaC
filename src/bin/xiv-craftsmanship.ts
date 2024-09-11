@@ -3,6 +3,7 @@ import "source-map-support/register";
 import { Ecr } from "../lib/ecr";
 import { GitHubActions } from "../lib/github-actions";
 import { Infrastructure } from "../lib/infrastructure";
+import { DeployDataStoreService } from "../lib/deploy-data-store-service";
 import { stage } from "../util/stage";
 import { XivCraftsmanshipProps } from "../lib/type";
 import * as cdk from "aws-cdk-lib";
@@ -44,10 +45,30 @@ const infrastructure = new Infrastructure(
 	},
 );
 
+const deployDataStoreService = new DeployDataStoreService(
+	app,
+	"XivCraftsmanship-DeployDataStoreService",
+	{
+		ecr: {
+			db: ecr.db,
+		},
+		logs: {
+			db: infrastructure.logs.db,
+		},
+		cluster: infrastructure.cluster,
+		sg: {
+			dataStore: infrastructure.sg.app,
+		},
+		namespace: infrastructure.namespace,
+		...props,
+	},
+);
 
 /*******************************************************************************
  * dependencies
  ******************************************************************************/
+deployDataStoreService.addDependency(ecr);
+deployDataStoreService.addDependency(infrastructure);
 
 /*******************************************************************************
  * Synth

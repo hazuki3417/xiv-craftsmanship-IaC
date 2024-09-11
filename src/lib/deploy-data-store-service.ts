@@ -2,13 +2,12 @@ import { Construct } from "constructs";
 import { namespace } from "./namespace";
 import { XivCraftsmanshipProps } from "./type";
 import * as cdk from "aws-cdk-lib";
-import * as certificatemanager from "aws-cdk-lib/aws-certificatemanager";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as ecr from "aws-cdk-lib/aws-ecr";
 import * as ecs from "aws-cdk-lib/aws-ecs";
-import * as elb from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as logs from "aws-cdk-lib/aws-logs";
+import * as servicediscovery from 'aws-cdk-lib/aws-servicediscovery';
 
 interface DeployDataStoreServiceProps extends XivCraftsmanshipProps {
 	ecr: {
@@ -17,15 +16,15 @@ interface DeployDataStoreServiceProps extends XivCraftsmanshipProps {
 	logs: {
 		db: logs.ILogGroup;
 	};
-	alb: elb.ApplicationLoadBalancer;
 	cluster: ecs.Cluster;
-	certificate: certificatemanager.ICertificate;
 	sg: {
-		app: ec2.SecurityGroup;
+		dataStore: ec2.SecurityGroup;
 	};
+	namespace: servicediscovery.PrivateDnsNamespace;
 	// NOTE: 必要に応じて依存するリソースの型を定義
 }
 export class DeployDataStoreService extends cdk.Stack {
+	public readonly service: ecs.FargateService;
 	constructor(scope: Construct, id: string, props: DeployDataStoreServiceProps) {
 		super(scope, id, props);
 		const env = props.env;
@@ -97,7 +96,6 @@ export class DeployDataStoreService extends cdk.Stack {
 					interval: cdk.Duration.seconds(10),
 					startPeriod: cdk.Duration.seconds(30),
 				},
-				essential: false,
 			},
 		);
 
@@ -107,7 +105,7 @@ export class DeployDataStoreService extends cdk.Stack {
 			{
 				cluster: props.cluster,
 				taskDefinition: task,
-				securityGroups: [props.sg.app],
+				securityGroups: [props.sg.dataStore],
 				vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
 				desiredCount: 1,
 				assignPublicIp: true,
@@ -118,8 +116,19 @@ export class DeployDataStoreService extends cdk.Stack {
 					rollback: true,
 					enable: true,
 				},
+				cloudMapOptions: {
+					name: 'data-store',
+					dnsRecordType: servicediscovery.DnsRecordType.A,
+					cloudMapNamespace: props.namespace,
+				},
 				enableExecuteCommand: true,
 			},
 		);
+
+		/***************************************************************************
+		 * output block
+		 **************************************************************************/
+
+		this.service = service;
 	}
 }

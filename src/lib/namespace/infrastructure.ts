@@ -1,4 +1,6 @@
+import { ServiceDiscovery } from "aws-cdk-lib/aws-appmesh";
 import { Set } from "../../util/resource";
+import { namespace } from ".";
 
 export const resource = (make: Set) => {
 	return {
@@ -81,5 +83,10 @@ export const resource = (make: Set) => {
 				resource: make.resource({ id: "CertificateManagerCertificateApp" }),
 			},
 		},
+		serviceDiscovery: {
+			namespace: {
+				resource: make.resource({ id: "ServiceDiscoveryNamespace" }),
+			},
+		}
 	};
 };

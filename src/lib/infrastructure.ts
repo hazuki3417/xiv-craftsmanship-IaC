@@ -8,6 +8,7 @@ import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as elb from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as route53 from "aws-cdk-lib/aws-route53";
+import * as servicediscovery from 'aws-cdk-lib/aws-servicediscovery';
 import * as targets from "aws-cdk-lib/aws-route53-targets";
 
 interface InfrastructureProps extends XivCraftsmanshipProps {
@@ -17,6 +18,7 @@ export class Infrastructure extends cdk.Stack {
 	public readonly cluster: ecs.Cluster;
 	public readonly alb: elb.ApplicationLoadBalancer;
 	public readonly certificate: certificatemanager.ICertificate;
+	public readonly namespace: servicediscovery.PrivateDnsNamespace;
 
 	public readonly sg: {
 		app: ec2.SecurityGroup;
@@ -192,6 +194,17 @@ export class Infrastructure extends cdk.Stack {
 		);
 
 		/***************************************************************************
+		 * service discovery
+		 **************************************************************************/
+		const dnsNamespace = new servicediscovery.PrivateDnsNamespace(
+			this,
+			name.stack.infrastructure.src.serviceDiscovery.namespace.resource.id,
+			{
+      name: `${env.stage}.${env.service}.local`,
+      vpc: vpc
+    });
+
+		/***************************************************************************
 		 * load balancer
 		 **************************************************************************/
 
@@ -232,6 +245,7 @@ export class Infrastructure extends cdk.Stack {
 		this.cluster = cluster;
 		this.alb = alb;
 		this.certificate = certificate;
+		this.namespace = dnsNamespace;
 
 		this.sg = {
 			app: sgApp,
