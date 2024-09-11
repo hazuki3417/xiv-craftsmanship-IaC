@@ -79,38 +79,38 @@ export class DeployAppService extends cdk.Stack {
 			},
 		);
 
-		// const containerWeb = task.addContainer(
-		// 	`${env.stage}-${env.service}-web-container`,
-		// 	{
-		// 		image: ecs.ContainerImage.fromEcrRepository(props.ecr.web),
-		// 		cpu: 256,
-		// 		memoryLimitMiB: 512,
-		// 		environment: {
-		// 			API_URL: "http://localhost:8080", // NOTE: xiv-craftsmanship-apiのURL
-		// 			HOST_URL: "https://xiv-craftsmanship.com",
-		// 		},
-		// 		portMappings: [
-		// 			{
-		// 				containerPort: 3000,
-		// 			},
-		// 		],
-		// 		logging: ecs.LogDriver.awsLogs({
-		// 			logGroup: props.logs.web,
-		// 			streamPrefix: `${env.stage}-${env.service}-web`,
-		// 		}),
-		// 		healthCheck: {
-		// 			command: [
-		// 				"CMD-SHELL",
-		// 				"wget --quiet --spider http://localhost:3000 || exit 1",
-		// 			],
-		// 			retries: 3,
-		// 			timeout: cdk.Duration.seconds(10),
-		// 			interval: cdk.Duration.seconds(30),
-		// 			startPeriod: cdk.Duration.seconds(30),
-		// 		},
-		// 		essential: true,
-		// 	},
-		// );
+		const containerWeb = task.addContainer(
+			`${env.stage}-${env.service}-web-container`,
+			{
+				image: ecs.ContainerImage.fromEcrRepository(props.ecr.web),
+				cpu: 256,
+				memoryLimitMiB: 512,
+				environment: {
+					API_URL: "http://localhost:8080", // NOTE: xiv-craftsmanship-apiのURL
+					HOST_URL: "https://xiv-craftsmanship.com",
+				},
+				portMappings: [
+					{
+						containerPort: 3000,
+					},
+				],
+				logging: ecs.LogDriver.awsLogs({
+					logGroup: props.logs.web,
+					streamPrefix: `${env.stage}-${env.service}-web`,
+				}),
+				healthCheck: {
+					command: [
+						"CMD-SHELL",
+						"wget --quiet --spider http://localhost:3000 || exit 1",
+					],
+					retries: 3,
+					timeout: cdk.Duration.seconds(10),
+					interval: cdk.Duration.seconds(30),
+					startPeriod: cdk.Duration.seconds(30),
+				},
+				essential: true,
+			},
+		);
 
 		const containerApi = task.addContainer(
 			`${env.stage}-${env.service}-api-container`,
@@ -145,15 +145,15 @@ export class DeployAppService extends cdk.Stack {
 					interval: cdk.Duration.seconds(30),
 					startPeriod: cdk.Duration.seconds(30),
 				},
-				// essential: false,
+				essential: false,
 			},
 		);
 
 		// タスク内のコンテナ依存を定義
-		// containerWeb.addContainerDependencies({
-		// 	container: containerApi,
-		// 	condition: ecs.ContainerDependencyCondition.HEALTHY,
-		// });
+		containerWeb.addContainerDependencies({
+			container: containerApi,
+			condition: ecs.ContainerDependencyCondition.HEALTHY,
+		});
 
 		const service = new ecs.FargateService(
 			this,
@@ -185,27 +185,30 @@ export class DeployAppService extends cdk.Stack {
 		 * load balancer
 		 **************************************************************************/
 
-		// const listener = props.alb.addListener(
-		// 	name.stack.deployAppService.src.elb.listener.web.resource.id,
-		// 	{
-		// 		port: 443,
-		// 		certificates: [props.certificate],
-		// 		open: true,
-		// 	},
-		// );
+		const listener = props.alb.addListener(
+			name.stack.deployAppService.src.elb.listener.web.resource.id,
+			{
+				port: 443,
+				certificates: [props.certificate],
+				open: true,
+			},
+		);
 
-		// listener.addTargets(name.stack.deployAppService.src.elb.targetGroup.web.resource.id, {
-		// 	port: 3000,
-		// 	protocol: elb.ApplicationProtocol.HTTP,
-		// 	targets: [xivCraftsmanshipAppService],
-		// 	healthCheck: {
-		// 		enabled: true,
-		// 		path: "/",
-		// 		interval: cdk.Duration.seconds(30),
-		// 		timeout: cdk.Duration.seconds(5),
-		// 		unhealthyThresholdCount: 2,
-		// 		healthyThresholdCount: 2,
-		// 	},
-		// });
+		listener.addTargets(
+			name.stack.deployAppService.src.elb.targetGroup.web.resource.id,
+			{
+				port: 3000,
+				protocol: elb.ApplicationProtocol.HTTP,
+				targets: [service],
+				healthCheck: {
+					enabled: true,
+					path: "/",
+					interval: cdk.Duration.seconds(30),
+					timeout: cdk.Duration.seconds(5),
+					unhealthyThresholdCount: 2,
+					healthyThresholdCount: 2,
+				},
+			},
+		);
 	}
 }

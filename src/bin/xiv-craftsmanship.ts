@@ -99,6 +99,10 @@ const deployAppService = new DeployAppService(
 deployDataStoreService.addDependency(ecr);
 deployDataStoreService.addDependency(infrastructure);
 
+deployAppService.addDependency(ecr);
+deployAppService.addDependency(infrastructure);
+deployAppService.addDependency(deployDataStoreService);
+
 /*******************************************************************************
  * Synth
  ******************************************************************************/
