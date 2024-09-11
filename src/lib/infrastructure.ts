@@ -53,7 +53,8 @@ export class Infrastructure extends cdk.Stack {
 			this,
 			name.stack.infrastructure.src.ec2.sg.app.resource.id,
 			{
-				securityGroupName: name.stack.infrastructure.src.ec2.sg.app.resource.name,
+				securityGroupName:
+					name.stack.infrastructure.src.ec2.sg.app.resource.name,
 				vpc: vpc,
 				allowAllOutbound: true,
 			},
@@ -74,7 +75,8 @@ export class Infrastructure extends cdk.Stack {
 			this,
 			name.stack.infrastructure.src.ec2.sg.dataStore.resource.id,
 			{
-				securityGroupName: name.stack.infrastructure.src.ec2.sg.dataStore.resource.name,
+				securityGroupName:
+					name.stack.infrastructure.src.ec2.sg.dataStore.resource.name,
 				vpc: vpc,
 				allowAllOutbound: true,
 			},
