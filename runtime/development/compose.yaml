@@ -1,0 +1,84 @@
+name: xiv-craftsmanship
+
+services:
+  caddy:
+    image: ${CADDY_IMAGE:?Set CADDY_IMAGE}
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+    networks: [frontend]
+
+  web:
+    image: ${WEB_IMAGE:?Set WEB_IMAGE}
+    restart: unless-stopped
+    environment:
+      API_URL: http://api:8080
+      HOST_URL: https://xiv-craftsmanship.com
+    expose: ["3000"]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:3000/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [frontend, backend]
+
+  api:
+    image: ${API_IMAGE:?Set API_IMAGE}
+    restart: unless-stopped
+    environment:
+      STAGE: development
+      PORT: "8080"
+      POSTGRE_SQL_HOST: db
+      POSTGRE_SQL_USERNAME: ${POSTGRES_USER:?Set POSTGRES_USER}
+      POSTGRE_SQL_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRE_SQL_DB: ${POSTGRES_DB:?Set POSTGRES_DB}
+    expose: ["8080"]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:8080/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [backend]
+
+  db:
+    image: ${DB_IMAGE:?Set DB_IMAGE}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    networks: [backend]
+
+networks:
+  frontend: {}
+  backend:
+    internal: true
+
+volumes:
+  caddy_data: {}
+  caddy_config: {}
+  db_data: {}

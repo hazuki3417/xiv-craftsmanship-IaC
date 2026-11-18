@@ -1,0 +1,8 @@
+{
+    email ops@xiv-craftsmanship.com
+}
+
+xiv-craftsmanship.com {
+    encode zstd gzip
+    reverse_proxy web:3000
+}
