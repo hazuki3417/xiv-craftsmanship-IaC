@@ -13,7 +13,7 @@ jobs:
         with:
           terraform_version: "1.10.5"
       - name: Terraform format check
-        run: terraform fmt -recursive -check
+        run: terraform fmt -recursive -diff -check
       - name: Bootstrap validation (no AWS)
         run: |
           terraform -chdir=bootstrap/aws init -backend=false -input=false
