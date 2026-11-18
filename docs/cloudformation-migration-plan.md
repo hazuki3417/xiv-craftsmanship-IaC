@@ -1,66 +1,79 @@
-# 旧CloudFormation/CDKからTerraformへの移行計画
+# 旧CDKの廃止とTerraformによる新規構築計画
 
-ステータス: **計画案 / AWSの実リソース未確認**。Cloudへの変更と破壊的操作は行っていない。
+ステータス: **設計方針合意・AWS実リソース未確認**。既存IaCソースは全面置換を許容。AWS上のリソース削除やTerraform applyは未実施。
 
-## 1. 現行実装の棚卸し
+## 1. 今回の決定
 
-`main` のCDKエントリーポイント `src/bin/xiv-craftsmanship.ts` は次の5 stackを構築する。
+- **既存のAWS CDK / CloudFormationによるIaC実装はすべて廃止してよい**。旧CDKのstack・construct・namespace・npm依存・関連テストを新IaCの必須資産とはしない。
+- 同じ `xiv-craftsmanship-IaC` リポジトリ内でTerraform（HCL）とDocker Composeへ**全面置換**する。旧CDKをTerraformへ段階的に移植する必要はない。
+- 廃止対象コードは、Terraform実装・静的検証を含む置換PRで削除する。設計PRではドキュメントのみ変更し、旧CDKコードを途中で削除してリポジトリを空にしない。
+- 既存アプリは**現在稼働していないとの申告**を前提とするため、稼働中のサービスを無停止移行することは要求しない。新しいEC2環境を構築してから公開確認する。
+- ただし **アプリが非稼働 ≠ AWSリソースが存在しない**。既存のCloudFormation stack、ECR、ECS、ALB、Route 53、IAMなどが残存していれば費用・設定競合が起きるため、AWS実態確認は必須。
+- **GitHub上の旧IaCコード削除許可とAWS上の破壊的削除は別**。AWSリソースの操作はaccount/region/stackを確認してから別途実行判断する。Terraform Stateや共有Hosted Zoneを一括削除しない。
 
-1. `XivCraftsmanship-GitHubActions`: GitHub OIDC provider / AWS IAM role。
-2. `XivCraftsmanship-Ecr`: Web、API、DBのECR。
-3. `XivCraftsmanship-Infrastructure`: VPC、SG、ECS cluster、ALB、Route 53、ACM、Service Discovery、CloudWatch Logs。
-4. `XivCraftsmanship-DeployDataStoreService`: PostgreSQLのECS Fargate service。
-5. `XivCraftsmanship-DeployAppService`: Web/APIが同じECS task内で動くFargate service、443 listenerとtarget group。
+## 2. 旧CDKで定義されている構成（参考）
 
-この一覧はCDKコードから読める**構築対象の宣言**であり、AWS上で現存することを意味しない。AWS account / region、CloudFormation stack statuses、live ECS/ECR/Route 53、image tags、料金発生状況は未検証。
+現行 `main` の `src/bin/xiv-craftsmanship.ts` は以下を定義している。
 
-## 2. 移行の原則
-
-- 旧CloudFormation管理resourceをTerraformで**同時に管理しない**。同名のRoute 53 record等を二重作成しない。
-- 既存CloudFormation stackの物理resourceをTerraformへ自動でImportしない。今回の新構成では単一EC2等を別resourceとして用意し、旧基盤の廃止は切替確認後に実行することを優先する。
-- 継続して利用する既存Route 53 Hosted Zoneの所有関係を先に確認する。Terraformが新規Zoneを作る必要はない。既存A recordがCloudFormation所有なら削除／所有権移管時の競合、DNSの空白時間に注意する。
-- 既存ECRやALBなどの削除は、CloudFormation stack間の参照・依存を確認してから行う。
-- 既存システムの停止・DNS変更・旧resource削除は独立した明示承認を必要とする。Terraform Stateの破壊・旧DBの喪失を暗黙に承認されたものとしない。
-
-## 3. 移行フェーズ案
-
-| Phase | 実施 | 変更対象 / 判断ポイント |
+| Stack | 定義上の主要リソース | 新構成での扱い |
 | --- | --- | --- |
-| 0. Inventories | AWSのread-only確認 | CloudFormation、ECS、ECR、ALB、IAM、Route 53、ACM、請求対象 |
-| 1. Bootstrap | State backend準備 | State S3 bucketの新設または既存共有方針を決定、remote stateの保護確認 |
-| 2. Infra | Terraform plan/apply | 新VPC/EC2/SSM/EIPなど。既存CloudFormationとの重複・DNS衝突を回避 |
-| 3. Runtime | Compose・GHCRを準備 | Private Package発行、Pull認証、Caddy/Web/API/DB起動検証 |
-| 4. Cutover | DNS切替 | ドメインとHTTPSを新EC2に向け、E2E検証 |
-| 5. Retirement | 旧stackの順次撤去 | 依存関係・請求・復旧可否を確認した後に旧リソースを停止・廃止 |
+| `XivCraftsmanship-GitHubActions` | GitHub OIDC provider / IAM role | GHCR発行への変更後は原則不要 |
+| `XivCraftsmanship-Ecr` | Web、API、DBのECR | Private GHCRへ変更 |
+| `XivCraftsmanship-Infrastructure` | VPC、SG、ECS cluster、ALB、Route 53、ACM、CloudWatch Logs、Service Discovery | Terraformの新VPC/EC2/SSM/DNS + Caddyへ置換 |
+| `XivCraftsmanship-DeployDataStoreService` | PostgreSQL Fargate service | Docker Compose上のDBへ置換 |
+| `XivCraftsmanship-DeployAppService` | Web/API Fargate service、ALB listener | Docker Compose上のWeb/APIへ置換 |
 
-Phase 1-5はCloudの変更を伴うため、いずれもAWS account / regionと実行者権限、影響内容の確認後に個別承認を得る。
+これはコードに存在する**定義**の一覧であり、実在するAWSリソース一覧ではない。
 
-## 4. 依存と注意点
+## 3. 新規構築の順序
 
-### DNSとTLS
-現在の `Infrastructure` stackは `xiv-craftsmanship.com` のHosted Zoneをlookupして、ルートA recordをALBへAliasする。新構成ではEIPへ切り替える想定だが、Terraformが同じrecordを作ろうとすれば既存管理と競合する。現在のrecord所有stack、TTL、証明書とCAAの有無、DNS切替のタイミングを棚卸しする。Caddyは80/443到達可能で初めてACMEの自動取得が成立する。
+| 順序 | 作業 | 確認・制約 |
+| --- | --- | --- |
+| 0 | AWS read-only棚卸し | CloudFormation stack、DNS Hosted Zone/Record、既存課金リソースの有無を確認 |
+| 1 | Terraform・Compose・GHCRの実装 | 旧CDKを削除し、CIのformat/init/validateとCompose構文検証を実施 |
+| 2 | Terraform State backendの準備 | S3専用bucket、暗号化、versioning、public access block、lockfile |
+| 3 | Terraformで新規EC2構成を作成 | VPC、EC2、EIP、SSM、IAM。既存DNSレコードとの衝突は回避 |
+| 4 | GHCRから手動Pull・Compose起動 | Web/API/DB/Caddy、DB初期化、HTTPS疎通を確認 |
+| 5 | 公開DNSを新EC2へ設定 | Hosted Zoneを再利用する場合のrecord所有権と旧stackの関連を確認 |
+| 6 | 旧AWSリソースの整理 | 実在する不要stackを依存順に廃止。共有リソースは保護し、費用を確認 |
 
-### AWS IAM / OIDC
-旧OIDC providerはGitHub ActionsからECRへPushするためのRoleで、`actions: ["*"]` と `resources: ["*"]` の広い許可を含む。新構成のGHCR発行にはAWS IAM Roleを原則必要としない。EC2の管理にはSSM Roleのみを追加し、旧ProviderやRoleは既存の別用途への影響を調べてから廃止する。
+非稼働のためブルーグリーン／ゼロダウンタイム切替は必須ではない。ただしDNSと証明書は実リソースの所有関係を確認する。
 
-### コンテナイメージ
-現行Web・API・DBの `.github/workflows/deploy-to-ecr.yml` はECRへpushし、ECSサービスの更新は行わない。GHCRへの自動発行に置き換えるには各RepositoryのWorkflow変更が必要。Web/API/DBそれぞれのGHCR Package名、権限、Digest、手動deploy契約を合わせる。
+順序2-6のCloud操作には対象AWS account/region、実行権限、実リソース、適用内容の確認が必要。ここでの方針合意だけでapply/destroyを実行しない。
 
-### 環境構成
-既存CDKの `ENVIRONMENT=development` とWorkflowの `ENVIRONMENT=develop` は用途が異なる。新Terraform rootでは環境名とpathを統一する。一般公開環境をdevelopmentとするかproductionとするかは適用前に決める。
+## 4. リポジトリの削除対象・残すもの
 
-### Stateと安全確認
-Terraform backendはState専用の暗号化済みS3を用意し、versioning、bucket Public Access Block、HTTPS enforcement、Lockfileを設定する。Remote StateにはSecretを含めない。既存CloudFormation resourceのImportは実際に必要と判断したものだけに限り、意図しない二重管理を避ける。
+**置換PRで削除対象となる候補**
+- `src/bin/`、`src/lib/`、`src/util/`、`src/test/`、`src/cdk.json`、`src/cdk.context.json` などの旧CDKプロジェクト。
+- 旧CDK専用のpackage、lockfile、devbox設定やREADMEのコマンドは新Terraform環境に合わせて削除または置換する。
+- 旧ECR/OIDC前提のドキュメント・設定は不要なものを削除する。
 
-## 5. 移行完了判定
+**維持・再構成するもの**
+- `docs/` の今回の合意済みインフラ設計・運用設計。
+- `bootstrap/aws/`、`environments/development/aws/`（環境名は適用前に再確認）、`runtime/development/` を新設。
+- `README.md`、`.gitignore`、Quality GateをTerraformとDocker Composeに対応させる。
 
-- 新EC2でWeb/API/DB/Caddyが起動し、独立した公開アクセスのE2E試験に成功。
-- DNS/HTTPSが新構成に切り替わり、外部公開ポートが意図どおり。
-- Private GHCRの発行と手動Pull・Deploy・Rollbackが動作する。
-- 管理対象のTerraform Stateがremoteで保護され、`plan` の意図しない差分がない。
-- 旧CloudFormationの不要stack/resourceが後日確認を含めて廃止済み。
-- 不要なECR/ECS/ALB/CloudWatch関連resourceが残存せず、継続費用を確認済み。
+削除対象はディレクトリ単位で盲目的に消さず、Terraformに必要な内容を置き換えた状態でレビューする。
 
-## 6. 次のレビュー論点
+## 5. AWS資産の確認が依然として必要な理由
 
-最優先は **AWS上の既存resourceの実在確認と、Route 53 Hosted Zone/A recordの所有関係**。次に公開環境のenvironment名、EC2 instance size、初期化データの再現性を確定する。
+既存CDKが `xiv-craftsmanship.com` のHosted Zoneを参照してALB向けAレコードを設定するため、同名レコードが残存していればTerraform側の作成と競合する可能性がある。
+
+既存スタックが存在する場合、**Terraformによる自動Importや既存CloudFormationリソースの二重管理は避ける**。継続利用するDNS Hosted Zoneなどは、既存の所有関係を確認して新構成へ結び付ける。旧stackを削除する際は、依存するRoute 53 Record、ACM、ECR、IAM、共有リソースと課金への影響を確認する。
+
+## 6. 完了条件
+
+- 旧CDK実装・依存関係がIaCリポジトリから撤去され、Terraform/Composeの検証に成功。
+- Terraform Stateが保護されたS3 backendを利用。
+- 一般公開の `https://xiv-craftsmanship.com` にアクセスでき、WebからAPI/DBへ疎通。
+- Private GHCRのイメージ配信・手動Pull・Deploy・Rollbackが動作。
+- 実在した不要AWSリソースの整理結果と、残存する課金対象を確認。
+
+## 7. 未確定事項
+
+- AWS account/regionと既存CloudFormation stackの実在および残存リソース。
+- 既存Hosted ZoneとAレコードの所有関係。
+- 一般公開環境名（development/production）と新EC2のInstance Type。
+- DB初期化の再現性・必要時間。
+
+本書は実装とAWS変更の手順を定義するが、**AWSの破壊的操作を実行済みとみなさない**。
