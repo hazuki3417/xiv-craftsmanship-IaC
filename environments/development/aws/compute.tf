@@ -26,10 +26,10 @@ resource "aws_instance" "app" {
     dnf install -y docker
     systemctl enable --now docker
   EOF
-  tags = { Name = "xiv-craftsmanship-development-app" }
+  tags      = { Name = "xiv-craftsmanship-development-app" }
 }
 resource "aws_eip" "app" {
   domain   = "vpc"
   instance = aws_instance.app.id
-  tags = { Name = "xiv-craftsmanship-development-app" }
+  tags     = { Name = "xiv-craftsmanship-development-app" }
 }
