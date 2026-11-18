@@ -10,7 +10,7 @@ xiv-craftsmanshipは製作品のBOMと必要素材数量を参照する小規模
 - 既存のWeb（Next.js）、API（Go）、PostgreSQLの3アプリケーションコンテナを維持する。
 - TLS終端・Reverse Proxyとして公式Caddyイメージを追加し、合計4コンテナとする。
 - 単一インスタンスの停止・障害によるサービス停止を許容し、冗長化、HA、ALB、ECS、RDS、NAT Gatewayは使用しない。
-- DBの定期バックアップと永続データ用EBSの追加は要件としない。DBは初期化用データセットから再生成できることを**実機で検証**する。
+- DBの定期バックアップと専用データEBSの追加は要件としない（通常更新時のDB維持用にルートEBS上のDocker volumeは使う）。DBは初期化用データセットから再生成できることを**実機で検証**する。
 - Terraform Stateの保護はアプリDBバックアップとは別責務として必須とする。
 
 参照元: [memoria-designのTerraform設計ブランチ](https://github.com/hazuki3417/memoria-design/blob/docs/terraform-infrastructure/content/system/infrastructure/index.mdx)、[memoria-IaCのTerraform作業ブランチ](https://github.com/hazuki3417/memoria-IaC/tree/chore/terraform-foundation)。これらは現在の`develop`の内容を指すものではない。設計を参考にするが、memoriaのメディアS3、Redis、Worker、DBバックアップなどは導入しない。
@@ -42,7 +42,7 @@ APIとPostgreSQLの接続はCompose service名 `db` を使用し、DBポート�
 
 インスタンスタイプは初期候補 `t3.medium`（2 vCPU、4 GiB）。これは**確定した性能要件ではない**。リージョン、同時利用者数、DB初期化負荷、実行メモリの計測後に最終決定する。ARM系へ変更する場合は全イメージのarchを検証する。
 
-DBのroot filesystem上のデータはインスタンス交換/コンテナ再生成で失われ得る設計とする。**ユーザー提供データがなく、初期化用DBイメージとSQLから復元できる**ことを移行の受け入れ条件とする。コンテナ更新と初期化の所要時間は要計測。
+DBはEC2ルートEBSに保存されるDocker named volumeを使用し、通常のコンテナ再作成ではデータを保持する。ただしバックアップは行わず、EC2のroot disk交換・消失時は初期化データセットから再構築する。**ユーザー提供データがなく、初期化用DBイメージとSQLから復元できる**ことを移行の受け入れ条件とする。コンテナ更新と初期化の所要時間は要計測。
 
 ## 4. リポジトリ構成案
 
