@@ -8,8 +8,8 @@ variable "instance_type" {
   description = "2 vCPU, 4 GiB starting point; validate under load"
 }
 variable "root_volume_size_gib" {
-  type        = number
-  default     = 30
+  type    = number
+  default = 30
   validation {
     condition     = var.root_volume_size_gib >= 20
     error_message = "Root disk must be at least 20 GiB."
