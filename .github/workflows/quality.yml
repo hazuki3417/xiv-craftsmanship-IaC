@@ -1,0 +1,32 @@
+name: Infrastructure quality
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10.5"
+      - name: Terraform format check
+        run: terraform fmt -recursive -diff -check
+      - name: Bootstrap validation (no AWS)
+        run: |
+          terraform -chdir=bootstrap/aws init -backend=false -input=false
+          terraform -chdir=bootstrap/aws validate
+      - name: Environment validation (no AWS)
+        run: |
+          terraform -chdir=environments/development/aws init -backend=false -input=false
+          terraform -chdir=environments/development/aws validate
+  runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bash syntax
+        run: bash -n runtime/development/*.sh
+      - name: Docker Compose syntax (placeholders only)
+        run: docker compose --env-file runtime/development/.env.example -f runtime/development/compose.yaml config --quiet

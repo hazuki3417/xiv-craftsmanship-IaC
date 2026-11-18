@@ -1,0 +1,15 @@
+# Terraform providers, state, plans and local secrets
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.*
+**/*.tfplan
+**/crash.log
+*.tfvars
+*.tfvars.json
+.env
+.env.*
+!**/.env.example
+
+# Preserve generated provider lock files once reviewed
+!**/.terraform.lock.hcl
+.DS_Store
