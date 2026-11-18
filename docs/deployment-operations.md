@@ -33,7 +33,7 @@
 - Caddy -> `web:3000`、Web server -> `api:8080`、API -> `db:5432`。
 - Webの現行 `app/next.config.mjs` にある `http://localhost:8080` rewriteはCompose内のサービス名に変更が必要。ブラウザ側の環境変数 `NEXT_PUBLIC_*` とビルド時展開にも注意。
 - DB接続資格情報は実運用のSecretとしてGit管理外に置く。現在の固定 `example` は再利用しない。PostgreSQL初期化を同じ認証設定で行う。
-- DBは初期化データセットから再構築可能であることを要検証。データボリューム・バックアップを義務にしないが、意図せぬ初期化を許容する仕様として明記する。
+- DBはEC2 root EBS上のDocker named volume（db_data）を用い、通常のコンテナ更新ではDBを維持する。バックアップ・追加の専用EBSは用意しないため、インスタンスやroot disk喪失時は初期化データセットから再生成する。その再現性は要検証。
 - Caddyの `/data` は再起動・再作成にまたがり保持し、HTTPS証明書を管理する。Web/API/DBと異なる保持方針であることに注意する。
 - Healthcheckと起動順序を適用し、`depends_on` のみでDB readyを保証したとみなさない。
 
@@ -50,7 +50,7 @@
 - 登録されたGHCR PackageがPrivateであり、無認証Pullできない。
 - GitHub ActionsでのPush後もEC2上の稼働digestは自動で変わらず、管理者による手動操作でのみ変わる。
 - Web/API/DBの更新と、直前の動作確認済みバージョンへの切り戻しを再現できる。
-- DBを再生成しても参照用のテーブル/データ/関数が正しく復元される。
+- DBの通常コンテナ更新では既存データが保持され、root disk喪失後の再生成では参照用テーブル/データ/関数が正しく復元される。
 - Caddyコンテナを再作成してもTLS証明書用データが保持される。
 
 この表はテスト仕様であり、実施済みの検証結果ではない。
